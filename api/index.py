@@ -72,27 +72,47 @@ TRENDING = {
 def gemini(prompt, img_b64=None):
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
-    parts = [{"text": prompt}]
-    if img_b64:
-        parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
-    body = json.dumps({
-        "contents": [{"parts": parts}],
-        "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
-    }).encode()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-    import time
-    for attempt in range(3):
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                res = json.loads(r.read().decode())
-                txt = res["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(txt)
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(2)
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_KEY)
+        models = ["gemini-2.5-flash", "gemini-2.0-flash-lite-001", "gemini-1.5-flash"]
+        for model_name in models:
+            try:
+                model = genai.GenerativeModel(model_name)
+                kwargs = {"contents": prompt, "generation_config": {"temperature": 0.92, "max_output_tokens": 8192, "response_mime_type": "application/json"}}
+                if img_b64:
+                    kwargs["contents"] = [{"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}, prompt]
+                resp = model.generate_content(**kwargs)
+                return json.loads(resp.text)
+            except Exception as e:
                 continue
-            return {"error": str(e)}
+        return {"error": "所有模型均不可用"}
+    except ImportError:
+        # SDK not installed, fallback to urllib
+        import time
+        for model_name in ["gemini-2.5-flash", "gemini-2.0-flash-lite-001", "gemini-1.5-flash"]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
+                parts = [{"text": prompt}]
+                if img_b64:
+                    parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
+                body = json.dumps({
+                    "contents": [{"parts": parts}],
+                    "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
+                }).encode()
+                req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+                for attempt in range(3):
+                    try:
+                        with urllib.request.urlopen(req, timeout=30) as r:
+                            res = json.loads(r.read().decode())
+                            txt = res["candidates"][0]["content"]["parts"][0]["text"]
+                            return json.loads(txt)
+                    except Exception:
+                        if attempt < 2:
+                            time.sleep(1)
+            except Exception:
+                continue
+        return {"error": "所有模型均不可用"}
 
 
 @app.route("/api/health")
@@ -104,17 +124,6 @@ def health():
 def trending():
     return jsonify({"platforms": {k: {"topics": v} for k, v in TRENDING.items()}})
 
-
-@app.route("/api/test-model/<model_name>")
-def test_model(model_name):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
-    body = json.dumps({"contents": [{"parts": [{"text": "hi"}]}]}).encode()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return jsonify({"model": model_name, "status": "ok", "code": r.status})
-    except Exception as e:
-        return jsonify({"model": model_name, "status": "error", "error": str(e)})
 
 @app.route("/api/analyze", methods=["POST", "OPTIONS"])
 def analyze():
