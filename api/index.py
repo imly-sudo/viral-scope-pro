@@ -81,13 +81,18 @@ def gemini(prompt, img_b64=None):
         "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
     }).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            res = json.loads(r.read().decode())
-            txt = res["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(txt)
-    except Exception as e:
-        return {"error": str(e)}
+    import time
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                res = json.loads(r.read().decode())
+                txt = res["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(txt)
+        except Exception as e:
+            if attempt < 2:
+                time.sleep(2)
+                continue
+            return {"error": str(e)}
 
 
 @app.route("/api/health")
