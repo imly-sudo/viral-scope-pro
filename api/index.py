@@ -72,7 +72,7 @@ TRENDING = {
 def gemini(prompt, img_b64=None):
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={GEMINI_KEY}"
     parts = [{"text": prompt}]
     if img_b64:
         parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
