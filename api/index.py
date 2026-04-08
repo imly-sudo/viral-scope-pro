@@ -100,6 +100,17 @@ def trending():
     return jsonify({"platforms": {k: {"topics": v} for k, v in TRENDING.items()}})
 
 
+@app.route("/api/test-model/<model_name>")
+def test_model(model_name):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
+    body = json.dumps({"contents": [{"parts": [{"text": "hi"}]}]}).encode()
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return jsonify({"model": model_name, "status": "ok", "code": r.status})
+    except Exception as e:
+        return jsonify({"model": model_name, "status": "error", "error": str(e)})
+
 @app.route("/api/analyze", methods=["POST", "OPTIONS"])
 def analyze():
     if request.method == "OPTIONS":
