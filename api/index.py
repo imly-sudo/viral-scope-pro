@@ -1,7 +1,14 @@
 from flask import Flask, request, jsonify
 import os, json, urllib.request
 
-app = Flask(__name__)
+import pathlib
+BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+
+app = Flask(__name__, static_folder=str(BASE_DIR / "public"), static_url_path="")
+
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 
