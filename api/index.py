@@ -72,48 +72,46 @@ TRENDING = {
 def gemini(prompt, img_b64=None):
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_KEY)
-        models = ["gemini-2.5-flash", "gemini-2.0-flash-lite-001", "gemini-1.5-flash"]
-        for model_name in models:
-            try:
-                model = genai.GenerativeModel(model_name)
-                kwargs = {"contents": prompt, "generation_config": {"temperature": 0.92, "max_output_tokens": 8192, "response_mime_type": "application/json"}}
-                if img_b64:
-                    kwargs["contents"] = [{"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}, prompt]
-                resp = model.generate_content(**kwargs)
-                return json.loads(resp.text)
-            except Exception as e:
-                continue
-        return {"error": "所有模型均不可用"}
-    except ImportError:
-        # SDK not installed, fallback to urllib
-        import time
-        for model_name in ["gemini-2.5-flash", "gemini-2.0-flash-lite-001", "gemini-1.5-flash"]:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
-                parts = [{"text": prompt}]
-                if img_b64:
-                    parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
-                body = json.dumps({
-                    "contents": [{"parts": parts}],
-                    "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
-                }).encode()
-                req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-                for attempt in range(3):
-                    try:
-                        with urllib.request.urlopen(req, timeout=30) as r:
-                            res = json.loads(r.read().decode())
-                            txt = res["candidates"][0]["content"]["parts"][0]["text"]
-                            return json.loads(txt)
-                    except Exception:
-                        if attempt < 2:
-                            time.sleep(1)
-            except Exception:
-                continue
-        return {"error": "所有模型均不可用"}
-
+    
+    import time
+    import urllib.request
+    
+    # 按优先级尝试不同模型
+    models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash", 
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro"
+    ]
+    
+    for model_name in models:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
+            parts = [{"text": prompt}]
+            if img_b64:
+                parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
+            body = json.dumps({
+                "contents": [{"parts": parts}],
+                "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
+            }).encode()
+            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+            
+            for attempt in range(3):
+                try:
+                    with urllib.request.urlopen(req, timeout=60) as r:
+                        res = json.loads(r.read().decode())
+                        txt = res["candidates"][0]["content"]["parts"][0]["text"]
+                        return json.loads(txt)
+                except urllib.error.HTTPError as e:
+                    if e.code == 503 and attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise
+        except Exception as e:
+            continue
+    
+    return {"error": "所有模型均不可用"}
 
 @app.route("/api/health")
 def health():
