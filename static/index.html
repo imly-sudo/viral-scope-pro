@@ -2,121 +2,396 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>ViralScope Pro - 内部创作实验室</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViralScope Pro - AI 爆款预测与自动优化</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass{background:rgba(255,255,255,.85);backdrop-filter:blur(12px)}
+        .analyzing{animation:pulse 1.5s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+        .score-ring{transition:stroke-dashoffset 1.2s ease-out}
+        .fade-in{animation:fadeIn .5s ease-out}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans p-8">
-    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border">
-        <div class="bg-indigo-600 p-8 text-white">
-            <h1 class="text-3xl font-black italic tracking-tighter">ViralScope <span class="text-indigo-200">Pro</span></h1>
-            <p class="text-indigo-100 mt-2 opacity-80">您的个人爆款内容预测与优化站 (Cloud Edition)</p>
+<body class="bg-gradient-to-br from-slate-50 to-indigo-50/30 min-h-screen font-sans">
+
+    <!-- Nav -->
+    <nav class="sticky top-0 z-50 glass border-b px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200">
+                <i class="fas fa-bolt text-white text-lg"></i>
+            </div>
+            <span class="text-2xl font-black tracking-tighter">ViralScope <span class="text-indigo-600">Pro</span></span>
         </div>
-        
-        <div class="p-8">
-            <div id="input-section" class="space-y-6">
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">发布平台</label>
-                        <select id="platform" class="w-full bg-slate-100 border-none rounded-xl p-4 font-bold outline-none">
-                            <option value="red">小红书 (SEO+审美)</option>
-                            <option value="douyin">抖音/TikTok (节奏+钩子)</option>
-                            <option value="ins">Instagram (滤镜+格调)</option>
-                        </select>
+        <div class="flex items-center space-x-4 text-xs font-bold">
+            <span id="status-dot" class="flex items-center text-emerald-600">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span> AI 在线
+            </span>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+        <div class="grid grid-cols-12 gap-8">
+
+            <!-- Left: Input -->
+            <div class="col-span-12 lg:col-span-5 space-y-6">
+                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-indigo-50 border border-indigo-50">
+                    <h2 class="text-lg font-black mb-6 flex items-center">
+                        <i class="fas fa-flask text-indigo-500 mr-2"></i> 内容实验室
+                    </h2>
+
+                    <!-- Platform -->
+                    <div class="mb-5">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">目标平台</label>
+                        <div class="grid grid-cols-4 gap-2" id="platform-grid">
+                            <button onclick="setPlatform('red')" data-p="red" class="platform-btn p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50 flex flex-col items-center transition hover:shadow-md">
+                                <span class="text-red-500 text-lg mb-1">📕</span>
+                                <span class="text-[10px] font-black">小红书</span>
+                            </button>
+                            <button onclick="setPlatform('douyin')" data-p="douyin" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
+                                <span class="text-lg mb-1">🎵</span>
+                                <span class="text-[10px] font-black">抖音</span>
+                            </button>
+                            <button onclick="setPlatform('tiktok')" data-p="tiktok" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
+                                <i class="fab fa-tiktok text-lg mb-1"></i>
+                                <span class="text-[10px] font-black">TikTok</span>
+                            </button>
+                            <button onclick="setPlatform('ins')" data-p="ins" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
+                                <i class="fab fa-instagram text-pink-500 text-lg mb-1"></i>
+                                <span class="text-[10px] font-black">Instagram</span>
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">上传素材</label>
-                        <input type="file" id="file" class="w-full bg-slate-100 border-none rounded-xl p-3 text-xs">
+
+                    <!-- Image Upload -->
+                    <div class="mb-5">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">封面图 (可选)</label>
+                        <div class="relative">
+                            <div id="upload-zone" onclick="document.getElementById('file-input').click()" class="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition overflow-hidden">
+                                <img id="preview-img" class="hidden absolute inset-0 w-full h-full object-cover rounded-2xl">
+                                <i class="fas fa-cloud-upload-alt text-3xl text-slate-300 mb-2"></i>
+                                <span class="text-[10px] text-slate-400 font-bold">点击上传封面图，AI 将分析构图与色彩</span>
+                            </div>
+                            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
+                        </div>
                     </div>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">原始标题</label>
-                    <input type="text" id="title" class="w-full bg-slate-50 border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-100" placeholder="例如: 我的第一篇 AI 经验分享">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">正文草稿</label>
-                    <textarea id="body" rows="4" class="w-full bg-slate-50 border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-100" placeholder="输入您的内容草稿..."></textarea>
+
+                    <!-- Title -->
+                    <div class="mb-4">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">原始标题</label>
+                        <input type="text" id="title" class="w-full bg-slate-50 border-none rounded-xl px-4 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-200" placeholder="输入您想发的标题...">
+                    </div>
+
+                    <!-- Body -->
+                    <div class="mb-6">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">正文草稿</label>
+                        <textarea id="body" rows="5" class="w-full bg-slate-50 border-none rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-indigo-200" placeholder="输入内容正文..."></textarea>
+                    </div>
+
+                    <!-- Submit -->
+                    <button onclick="runAnalysis()" id="analyze-btn" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-indigo-200 hover:shadow-xl transition flex items-center justify-center">
+                        <i class="fas fa-wand-magic-sparkles mr-2"></i> AI 深度分析 & 自动优化
+                    </button>
                 </div>
 
-                <button onclick="analyze()" id="btn" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-indigo-700 transition">
-                    <i class="fas fa-wand-sparkles mr-2"></i> 开始 AI 爆款进化
-                </button>
+                <!-- Trending Topics -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border" id="trending-box">
+                    <h3 class="text-sm font-black mb-3 flex items-center">
+                        <i class="fas fa-fire text-orange-500 mr-2"></i> 今日热点 · <span id="trending-platform-name" class="text-indigo-600 ml-1">小红书</span>
+                    </h3>
+                    <div id="trending-tags" class="flex flex-wrap gap-2">
+                        <span class="text-slate-400 text-xs">加载中...</span>
+                    </div>
+                </div>
             </div>
 
-            <div id="result-section" class="hidden space-y-6 mt-8 border-t pt-8">
-                <div class="flex justify-between items-center">
-                    <h2 id="report-title" class="text-xl font-bold">针对「小红书」的进化报告</h2>
-                    <div class="text-right">
-                        <div id="score" class="text-4xl font-black text-indigo-600">85</div>
-                        <div class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">AI 优化后潜力</div>
-                    </div>
+            <!-- Right: Results -->
+            <div class="col-span-12 lg:col-span-7">
+                
+                <!-- Placeholder -->
+                <div id="placeholder" class="bg-white/50 border-2 border-dashed border-slate-200 rounded-3xl p-16 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
+                    <i class="fas fa-chart-line text-5xl text-slate-200 mb-4"></i>
+                    <h3 class="text-lg font-bold text-slate-400">等待分析...</h3>
+                    <p class="text-xs text-slate-300 mt-2 max-w-xs">输入您的标题和正文，AI 将为您生成爆款潜力评分、标题改写、排版优化和视觉建议。</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-slate-50 p-6 rounded-3xl border">
-                        <h3 class="font-bold mb-4 flex items-center"><i class="fas fa-edit text-indigo-500 mr-2"></i> 标题进化方案</h3>
-                        <div id="headlines" class="space-y-3 text-sm"></div>
+
+                <!-- Results (hidden initially) -->
+                <div id="results" class="hidden space-y-6 fade-in">
+
+                    <!-- Score Overview -->
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-5 bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl text-white flex flex-col items-center justify-center">
+                            <span class="text-[10px] font-black text-indigo-200 tracking-[.2em] uppercase mb-3">爆款潜力指数</span>
+                            <div class="relative w-32 h-32">
+                                <svg class="w-full h-full -rotate-90">
+                                    <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.15)" stroke-width="10" fill="none"/>
+                                    <circle id="score-circle" cx="64" cy="64" r="56" stroke="#fff" stroke-width="10" fill="none" stroke-dasharray="351.8" stroke-dashoffset="351.8" stroke-linecap="round" class="score-ring"/>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="main-score" class="text-4xl font-black">--</span>
+                                </div>
+                            </div>
+                            <p class="text-indigo-100 text-[10px] mt-3 text-center" id="viral-prob">等待分析...</p>
+                        </div>
+
+                        <div class="col-span-7 bg-white p-5 rounded-3xl shadow-sm border space-y-3">
+                            <h3 class="text-sm font-black mb-2">维度拆解</h3>
+                            <div id="breakdown" class="space-y-3"></div>
+                        </div>
                     </div>
-                    <div class="bg-emerald-50 p-6 rounded-3xl border">
-                        <h3 class="font-bold mb-4 flex items-center"><i class="fas fa-magic text-emerald-500 mr-2"></i> 自动排版优化</h3>
-                        <div id="polished-body" class="text-xs leading-relaxed text-emerald-800 italic"></div>
-                        <h3 class="font-bold mt-6 mb-2 text-sm">视觉建议:</h3>
-                        <ul id="tips" class="text-xs text-slate-500 space-y-2"></ul>
+
+                    <!-- Fatal Flaw -->
+                    <div id="fatal-flaw-box" class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start">
+                        <i class="fas fa-skull-crossbones text-red-400 mt-1 mr-3"></i>
+                        <div>
+                            <p class="text-xs font-black text-red-700">致命缺陷 (Fatal Flaw)</p>
+                            <p id="fatal-flaw" class="text-[11px] text-red-600 mt-1"></p>
+                        </div>
                     </div>
+
+                    <!-- Headlines -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border">
+                        <h3 class="font-black mb-4 flex items-center">
+                            <i class="fas fa-pen-fancy text-indigo-500 mr-2"></i> 标题进化方案
+                        </h3>
+                        <div id="headlines" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Polished Body + Tags -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border">
+                            <h3 class="font-black mb-4 flex items-center">
+                                <i class="fas fa-magic text-emerald-500 mr-2"></i> 自动排版优化
+                            </h3>
+                            <div id="polished-body" class="bg-emerald-50/50 p-4 rounded-2xl text-xs leading-relaxed text-slate-700 whitespace-pre-wrap border border-emerald-100"></div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border">
+                                <h3 class="font-black mb-4 flex items-center">
+                                    <i class="fas fa-hashtag text-indigo-500 mr-2"></i> 智能标签
+                                </h3>
+                                <div id="tags" class="flex flex-wrap gap-2"></div>
+                            </div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border">
+                                <h3 class="font-black mb-4 flex items-center">
+                                    <i class="fas fa-eye text-amber-500 mr-2"></i> 视觉建议
+                                </h3>
+                                <ul id="visual-tips" class="space-y-2 text-xs text-slate-600"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vision Analysis (shown only if image uploaded) -->
+                    <div id="vision-box" class="hidden bg-white p-6 rounded-3xl shadow-sm border">
+                        <h3 class="font-black mb-4 flex items-center">
+                            <i class="fas fa-image text-violet-500 mr-2"></i> 图片深度分析 (Gemini Vision)
+                        </h3>
+                        <div id="vision-result" class="space-y-3 text-xs text-slate-600"></div>
+                    </div>
+
+                    <!-- Reset -->
+                    <button onclick="resetUI()" class="w-full text-center text-indigo-600 font-bold text-sm py-3">
+                        <i class="fas fa-arrow-left mr-1"></i> 返回编辑器，继续优化
+                    </button>
                 </div>
-                <button onclick="reset()" class="block w-full text-center text-indigo-600 font-bold text-sm">← 返回编辑器</button>
             </div>
         </div>
-    </div>
-    
-    <div class="max-w-4xl mx-auto mt-8 flex justify-center text-slate-400 text-xs font-bold space-x-4">
-        <span>© 2026 ViralScope AI Labs</span>
-        <span>•</span>
-        <span>内部测试版 v2.3 (Serverless)</span>
-    </div>
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-6 py-6 flex justify-center text-slate-300 text-[10px] font-bold space-x-4">
+        <span>© 2026 ViralScope AI</span>
+        <span>·</span>
+        <span>Powered by Google Gemini</span>
+        <span>·</span>
+        <span>v2.5</span>
+    </footer>
 
     <script>
-        async function analyze() {
-            const btn = document.getElementById('btn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 进化中...';
+        let currentPlatform = 'red';
+        let imageBase64 = null;
 
-            const payload = {
-                platform: document.getElementById('platform').value,
-                title: document.getElementById('title').value,
-                body: document.getElementById('body').value
+        // Platform selector
+        function setPlatform(p) {
+            currentPlatform = p;
+            document.querySelectorAll('.platform-btn').forEach(btn => {
+                const isActive = btn.dataset.p === p;
+                btn.classList.toggle('border-indigo-500', isActive);
+                btn.classList.toggle('bg-indigo-50', isActive);
+                btn.classList.toggle('border-transparent', !isActive);
+                btn.classList.toggle('bg-slate-50', !isActive);
+            });
+            loadTrending(p);
+        }
+
+        // Image handling
+        function handleImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = document.getElementById('preview-img');
+                img.src = ev.target.result;
+                img.classList.remove('hidden');
+                // Extract base64 (remove data:image/...;base64, prefix)
+                imageBase64 = ev.target.result.split(',')[1];
             };
+            reader.readAsDataURL(file);
+        }
+
+        // Load trending topics
+        async function loadTrending(platform) {
+            const nameMap = {red:'小红书',douyin:'抖音',tiktok:'TikTok',ins:'Instagram'};
+            document.getElementById('trending-platform-name').textContent = nameMap[platform] || '小红书';
+            try {
+                const resp = await fetch('/api/trending');
+                const data = await resp.json();
+                const topics = data.platforms?.[platform]?.topics || [];
+                document.getElementById('trending-tags').innerHTML = topics.map(t =>
+                    `<span class="px-2.5 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100">${t}</span>`
+                ).join('');
+            } catch(e) {
+                document.getElementById('trending-tags').innerHTML = '<span class="text-slate-400 text-xs">暂无数据</span>';
+            }
+        }
+
+        // Main analysis
+        async function runAnalysis() {
+            const title = document.getElementById('title').value.trim();
+            const body = document.getElementById('body').value.trim();
+            if (!title && !body) { alert('请至少输入标题或正文'); return; }
+
+            const btn = document.getElementById('analyze-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Gemini AI 深度分析中...';
+            btn.classList.add('analyzing');
 
             try {
-                const response = await fetch('/api/analyze', {
+                const payload = { platform: currentPlatform, title, body };
+                if (imageBase64) payload.image = imageBase64;
+
+                const resp = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await response.json();
-
-                document.getElementById('score').innerText = data.score;
-                document.getElementById('report-title').innerText = `针对「${data.platform_name}」的进化报告`;
-                document.getElementById('headlines').innerHTML = data.headlines.map(h => `<div class="p-3 bg-white border rounded-xl">${h}</div>`).join('');
-                document.getElementById('polished-body').innerText = data.polished_body;
-                document.getElementById('tips').innerHTML = data.tips.map(t => `<li>• ${t}</li>`).join('');
-
-                document.getElementById('input-section').classList.add('hidden');
-                document.getElementById('result-section').classList.remove('hidden');
-            } catch (e) {
-                alert('分析失败，请重试');
+                const data = await resp.json();
+                
+                if (data.error) { alert('分析出错: ' + data.error); return; }
+                renderResults(data);
+            } catch(e) {
+                alert('网络错误，请重试');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = originalText;
+                btn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i> AI 深度分析 & 自动优化';
+                btn.classList.remove('analyzing');
             }
         }
 
-        function reset() {
-            document.getElementById('input-section').classList.remove('hidden');
-            document.getElementById('result-section').classList.add('hidden');
+        function renderResults(data) {
+            const t = data.text_analysis || {};
+            const v = data.vision_analysis;
+
+            // Score
+            const score = t.score || 0;
+            document.getElementById('main-score').textContent = score;
+            const circle = document.getElementById('score-circle');
+            circle.style.strokeDashoffset = 351.8 - (351.8 * score / 100);
+            document.getElementById('viral-prob').textContent = `进入二级流量池概率: ${t.viral_probability || score+'%'}`;
+
+            // Breakdown
+            const bd = t.score_breakdown || {};
+            document.getElementById('breakdown').innerHTML = Object.entries(bd).map(([k,v]) => `
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1">
+                        <span class="font-bold text-slate-600">${k}</span>
+                        <span class="font-black text-indigo-600">${v}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-indigo-500 h-full rounded-full transition-all duration-1000" style="width:${v}%"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Fatal flaw
+            document.getElementById('fatal-flaw').textContent = t.fatal_flaw || '无明显致命问题';
+
+            // Headlines
+            const headlines = t.headlines || [];
+            document.getElementById('headlines').innerHTML = headlines.map((h,i) => `
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm hover:border-indigo-300 cursor-pointer transition flex justify-between items-center group" onclick="copyText(this)">
+                    <span>${h}</span>
+                    <i class="fas fa-copy text-slate-300 group-hover:text-indigo-500 ml-2 text-xs"></i>
+                </div>
+            `).join('');
+
+            // Polished body
+            document.getElementById('polished-body').textContent = t.polished_body || '';
+
+            // Tags
+            const tags = t.tags || [];
+            document.getElementById('tags').innerHTML = tags.map(tag =>
+                `<span class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold border border-indigo-100">${tag}</span>`
+            ).join('');
+
+            // Visual tips
+            const tips = t.visual_tips || [];
+            document.getElementById('visual-tips').innerHTML = tips.map(tip =>
+                `<li class="flex items-start"><i class="fas fa-check-circle text-emerald-400 mr-2 mt-0.5 text-[10px]"></i>${tip}</li>`
+            ).join('');
+
+            // Vision analysis
+            if (v && !v.error) {
+                document.getElementById('vision-box').classList.remove('hidden');
+                document.getElementById('vision-result').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-violet-50 p-3 rounded-xl">
+                            <span class="text-[10px] font-black text-violet-400 uppercase">视觉评分</span>
+                            <div class="text-2xl font-black text-violet-600 mt-1">${v.visual_score || '--'}</div>
+                        </div>
+                        <div class="bg-violet-50 p-3 rounded-xl">
+                            <span class="text-[10px] font-black text-violet-400 uppercase">平台匹配度</span>
+                            <div class="text-xs text-violet-700 mt-1 font-medium">${v.platform_fit || '--'}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        <p><strong>构图:</strong> ${v.composition || ''}</p>
+                        <p><strong>色彩:</strong> ${v.color_analysis || ''}</p>
+                        <p><strong>文字叠加建议:</strong> ${v.text_overlay_suggestion || ''}</p>
+                        <p><strong>裁剪建议:</strong> ${v.crop_suggestion || ''}</p>
+                    </div>
+                    <div class="mt-3">
+                        <strong>改进建议:</strong>
+                        <ul class="mt-1 space-y-1">${(v.improvement_tips||[]).map(t=>`<li>• ${t}</li>`).join('')}</ul>
+                    </div>
+                `;
+            } else {
+                document.getElementById('vision-box').classList.add('hidden');
+            }
+
+            // Show results
+            document.getElementById('placeholder').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
         }
+
+        function copyText(el) {
+            const text = el.querySelector('span').textContent;
+            navigator.clipboard.writeText(text);
+            const icon = el.querySelector('i');
+            icon.className = 'fas fa-check text-emerald-500 ml-2 text-xs';
+            setTimeout(() => { icon.className = 'fas fa-copy text-slate-300 group-hover:text-indigo-500 ml-2 text-xs'; }, 1500);
+        }
+
+        function resetUI() {
+            document.getElementById('placeholder').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Init
+        loadTrending('red');
     </script>
 </body>
 </html>

@@ -1,0 +1,37 @@
+{
+  "last_updated": "2026-04-08",
+  "platforms": {
+    "red": {
+      "name": "小红书",
+      "topics": [
+        "2026灵性防护清单", "沉浸式书桌改造", "AI数码好物",
+        "宋韵轻国风", "小米SU7真实体验", "极简咖啡角",
+        "春季穿搭公式", "新能源车露营", "副业自由", "治愈系风景"
+      ]
+    },
+    "douyin": {
+      "name": "抖音",
+      "topics": [
+        "荣耀Magic9", "比亚迪宋Ultra", "AI替代打工人",
+        "春日野餐", "数码开箱", "新能源对比测评",
+        "沉浸式收纳", "国货之光", "职场逆袭", "一人食"
+      ]
+    },
+    "tiktok": {
+      "name": "TikTok",
+      "topics": [
+        "permanent jewelry", "AI productivity", "desk setup 2026",
+        "EV road trip", "crystal healing", "minimalist living",
+        "tech unboxing", "side hustle", "aesthetic room", "wellness routine"
+      ]
+    },
+    "ins": {
+      "name": "Instagram",
+      "topics": [
+        "chunky gold jewelry", "quiet luxury", "desk aesthetics",
+        "EV lifestyle", "crystal collection", "old money style",
+        "tech minimal", "wellness ritual", "capsule wardrobe", "slow living"
+      ]
+    }
+  }
+}
