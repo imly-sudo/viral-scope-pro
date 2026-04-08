@@ -72,7 +72,7 @@ TRENDING = {
 def gemini(prompt, img_b64=None):
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
     parts = [{"text": prompt}]
     if img_b64:
         parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
@@ -224,7 +224,7 @@ def analyze():
 def test_key():
     from flask import request as _req
     k = _req.args.get("key", "")
-    model = _req.args.get("model", "gemini-2.5-pro-preview-05-06")
+    model = _req.args.get("model", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={k}"
     body = json.dumps({"contents": [{"parts": [{"text": "say hi"}]}]}).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
