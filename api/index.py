@@ -218,3 +218,19 @@ def analyze():
 }}""", img)
 
     return jsonify({"platform_name": cfg["name"], "text_analysis": result, "vision_analysis": vision}), 200, {"Access-Control-Allow-Origin": "*"}
+
+
+@app.route("/api/test-key")
+def test_key():
+    from flask import request as _req
+    k = _req.args.get("key", "")
+    model = _req.args.get("model", "gemini-2.5-pro-preview-05-06")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={k}"
+    body = json.dumps({"contents": [{"parts": [{"text": "say hi"}]}]}).encode()
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            res = json.loads(r.read().decode())
+            return jsonify({"status": "ok", "model": model, "response": res.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")[:100]})
+    except Exception as e:
+        return jsonify({"status": "error", "model": model, "error": str(e)[:200]})
