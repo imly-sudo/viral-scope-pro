@@ -1,7 +1,5 @@
 {
-  "functions": {
-    "app.py": {
-      "excludeFiles": "{static/**,research/**,*.html,*.js,*.sh,*.log,*.json,*.md,*.txt,!requirements.txt,node_modules/**,__pycache__/**,*.pyc,viral_scope*,api/**}"
-    }
-  }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" }
+  ]
 }

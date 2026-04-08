@@ -1,7 +1,8 @@
 *
 !.gitignore
-!app.py
-!requirements.txt
-!vercel.json
+!api/
+!api/index.py
 !public/
 !public/index.html
+!vercel.json
+!requirements.txt
