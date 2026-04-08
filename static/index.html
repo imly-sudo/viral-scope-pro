@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>ViralScope Pro - 内部创作实验室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border">
+        <div class="bg-indigo-600 p-8 text-white">
+            <h1 class="text-3xl font-black italic tracking-tighter">ViralScope <span class="text-indigo-200">Pro</span></h1>
+            <p class="text-indigo-100 mt-2 opacity-80">您的个人爆款内容预测与优化站 (Cloud Edition)</p>
+        </div>
+        
+        <div class="p-8">
+            <div id="input-section" class="space-y-6">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">发布平台</label>
+                        <select id="platform" class="w-full bg-slate-100 border-none rounded-xl p-4 font-bold outline-none">
+                            <option value="red">小红书 (SEO+审美)</option>
+                            <option value="douyin">抖音/TikTok (节奏+钩子)</option>
+                            <option value="ins">Instagram (滤镜+格调)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">上传素材</label>
+                        <input type="file" id="file" class="w-full bg-slate-100 border-none rounded-xl p-3 text-xs">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">原始标题</label>
+                    <input type="text" id="title" class="w-full bg-slate-50 border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-100" placeholder="例如: 我的第一篇 AI 经验分享">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">正文草稿</label>
+                    <textarea id="body" rows="4" class="w-full bg-slate-50 border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-100" placeholder="输入您的内容草稿..."></textarea>
+                </div>
+
+                <button onclick="analyze()" id="btn" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-indigo-700 transition">
+                    <i class="fas fa-wand-sparkles mr-2"></i> 开始 AI 爆款进化
+                </button>
+            </div>
+
+            <div id="result-section" class="hidden space-y-6 mt-8 border-t pt-8">
+                <div class="flex justify-between items-center">
+                    <h2 id="report-title" class="text-xl font-bold">针对「小红书」的进化报告</h2>
+                    <div class="text-right">
+                        <div id="score" class="text-4xl font-black text-indigo-600">85</div>
+                        <div class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">AI 优化后潜力</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 p-6 rounded-3xl border">
+                        <h3 class="font-bold mb-4 flex items-center"><i class="fas fa-edit text-indigo-500 mr-2"></i> 标题进化方案</h3>
+                        <div id="headlines" class="space-y-3 text-sm"></div>
+                    </div>
+                    <div class="bg-emerald-50 p-6 rounded-3xl border">
+                        <h3 class="font-bold mb-4 flex items-center"><i class="fas fa-magic text-emerald-500 mr-2"></i> 自动排版优化</h3>
+                        <div id="polished-body" class="text-xs leading-relaxed text-emerald-800 italic"></div>
+                        <h3 class="font-bold mt-6 mb-2 text-sm">视觉建议:</h3>
+                        <ul id="tips" class="text-xs text-slate-500 space-y-2"></ul>
+                    </div>
+                </div>
+                <button onclick="reset()" class="block w-full text-center text-indigo-600 font-bold text-sm">← 返回编辑器</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="max-w-4xl mx-auto mt-8 flex justify-center text-slate-400 text-xs font-bold space-x-4">
+        <span>© 2026 ViralScope AI Labs</span>
+        <span>•</span>
+        <span>内部测试版 v2.3 (Serverless)</span>
+    </div>
+
+    <script>
+        async function analyze() {
+            const btn = document.getElementById('btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 进化中...';
+
+            const payload = {
+                platform: document.getElementById('platform').value,
+                title: document.getElementById('title').value,
+                body: document.getElementById('body').value
+            };
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                document.getElementById('score').innerText = data.score;
+                document.getElementById('report-title').innerText = `针对「${data.platform_name}」的进化报告`;
+                document.getElementById('headlines').innerHTML = data.headlines.map(h => `<div class="p-3 bg-white border rounded-xl">${h}</div>`).join('');
+                document.getElementById('polished-body').innerText = data.polished_body;
+                document.getElementById('tips').innerHTML = data.tips.map(t => `<li>• ${t}</li>`).join('');
+
+                document.getElementById('input-section').classList.add('hidden');
+                document.getElementById('result-section').classList.remove('hidden');
+            } catch (e) {
+                alert('分析失败，请重试');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function reset() {
+            document.getElementById('input-section').classList.remove('hidden');
+            document.getElementById('result-section').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
