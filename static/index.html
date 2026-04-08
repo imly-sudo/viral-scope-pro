@@ -3,106 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ViralScope Pro - AI 爆款预测与自动优化</title>
+    <title>ViralScope · 你的爆款预言兔 🐰</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#FCF9F2',
+                        onyx: '#1A1A1A',
+                        coral: '#FF7F6E',
+                        'coral-dark': '#E8614F',
+                        lavender: '#E0D7FF',
+                        'lavender-dark': '#C4B5FD',
+                        gold: '#F3C35C',
+                        mint: '#7ED4AD',
+                        plum: '#0D0C12',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'bento': '20px',
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        .glass{background:rgba(255,255,255,.85);backdrop-filter:blur(12px)}
-        .analyzing{animation:pulse 1.5s ease-in-out infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-        .score-ring{transition:stroke-dashoffset 1.2s ease-out}
-        .fade-in{animation:fadeIn .5s ease-out}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+        body { background: #FCF9F2; }
+        .glass-warm { background: rgba(252,249,242,0.85); backdrop-filter: blur(16px); border: 1px solid rgba(0,0,0,0.04); }
+        .bento-card { background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all .3s ease; }
+        .bento-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); transform: translateY(-2px); }
+        .score-ring { transition: stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1); }
+        .fade-up { animation: fadeUp .6s cubic-bezier(.4,0,.2,1) forwards; opacity: 0; }
+        @keyframes fadeUp { to { opacity:1; transform:translateY(0); } from { opacity:0; transform:translateY(16px); } }
+        .hop-bounce { animation: hopBounce .6s ease; }
+        @keyframes hopBounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-12px)} 60%{transform:translateY(-6px)} }
+        .hop-sleep { animation: hopSleep 3s ease-in-out infinite; }
+        @keyframes hopSleep { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)} }
+        .analyzing-glow { animation: glowPulse 2s ease-in-out infinite; }
+        @keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(255,127,110,.15)} 50%{box-shadow:0 0 40px rgba(255,127,110,.3)} }
+        .confetti { position:fixed; top:-10px; pointer-events:none; z-index:999; animation: confettiFall 3s ease-out forwards; }
+        @keyframes confettiFall { to { transform:translateY(110vh) rotate(720deg); opacity:0; } }
+        .tag-float { animation: tagFloat 3s ease-in-out infinite; }
+        @keyframes tagFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+        .platform-btn { transition: all .25s ease; }
+        .platform-btn.active { background: linear-gradient(135deg, #FF7F6E 0%, #E0D7FF 100%); color: #fff; border-color: transparent; transform: scale(1.05); }
+        .gradient-text { background: linear-gradient(135deg, #FF7F6E, #E0D7FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .aurora-bg { background: linear-gradient(135deg, rgba(255,127,110,.08), rgba(224,215,255,.12), rgba(243,195,92,.06)); }
+        ::selection { background: #FFE4E0; }
+        .copy-toast { animation: toastIn .3s ease; }
+        @keyframes toastIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:scale(1)} }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-indigo-50/30 min-h-screen font-sans">
+<body class="min-h-screen font-sans text-onyx">
 
     <!-- Nav -->
-    <nav class="sticky top-0 z-50 glass border-b px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200">
-                <i class="fas fa-bolt text-white text-lg"></i>
-            </div>
-            <span class="text-2xl font-black tracking-tighter">ViralScope <span class="text-indigo-600">Pro</span></span>
+    <nav class="sticky top-0 z-50 glass-warm px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2.5">
+            <span class="text-2xl">🐰</span>
+            <span class="text-xl font-black tracking-tight">ViralScope</span>
         </div>
-        <div class="flex items-center space-x-4 text-xs font-bold">
-            <span id="status-dot" class="flex items-center text-emerald-600">
-                <span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span> AI 在线
+        <div class="flex items-center space-x-5 text-xs font-bold text-onyx/40">
+            <span class="text-coral flex items-center">
+                <span class="w-1.5 h-1.5 bg-mint rounded-full mr-1.5 animate-pulse"></span>AI 在线
             </span>
+            <button class="bg-onyx text-cream px-4 py-2 rounded-full hover:bg-onyx/80 transition text-[11px] font-extrabold">升级 Pro ✨</button>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-6 py-8">
-        <div class="grid grid-cols-12 gap-8">
+        <div class="grid grid-cols-12 gap-6">
 
-            <!-- Left: Input -->
-            <div class="col-span-12 lg:col-span-5 space-y-6">
-                <div class="bg-white p-6 rounded-3xl shadow-xl shadow-indigo-50 border border-indigo-50">
-                    <h2 class="text-lg font-black mb-6 flex items-center">
-                        <i class="fas fa-flask text-indigo-500 mr-2"></i> 内容实验室
-                    </h2>
+            <!-- Left: Input Lab -->
+            <div class="col-span-12 lg:col-span-5 space-y-5">
+                
+                <!-- Hero Card -->
+                <div class="bento-card p-7 aurora-bg">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-lg font-black">创作实验室</h2>
+                            <p class="text-[11px] text-onyx/40 font-medium mt-0.5">扔给 Hop 你的草稿，它会告诉你能不能火 🔥</p>
+                        </div>
+                        <span class="text-3xl hop-sleep" id="hop-idle">🐰</span>
+                    </div>
 
-                    <!-- Platform -->
+                    <!-- Platform Selector -->
                     <div class="mb-5">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">目标平台</label>
-                        <div class="grid grid-cols-4 gap-2" id="platform-grid">
-                            <button onclick="setPlatform('red')" data-p="red" class="platform-btn p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50 flex flex-col items-center transition hover:shadow-md">
-                                <span class="text-red-500 text-lg mb-1">📕</span>
-                                <span class="text-[10px] font-black">小红书</span>
+                        <label class="block text-[9px] font-black text-onyx/30 uppercase tracking-[.25em] mb-2">发布平台</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button onclick="setPlatform('red')" data-p="red" class="platform-btn active p-2.5 rounded-2xl border border-onyx/8 flex flex-col items-center">
+                                <span class="text-base mb-0.5">📕</span>
+                                <span class="text-[9px] font-extrabold">小红书</span>
                             </button>
-                            <button onclick="setPlatform('douyin')" data-p="douyin" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
-                                <span class="text-lg mb-1">🎵</span>
-                                <span class="text-[10px] font-black">抖音</span>
+                            <button onclick="setPlatform('douyin')" data-p="douyin" class="platform-btn p-2.5 rounded-2xl border border-onyx/8 flex flex-col items-center bg-white">
+                                <span class="text-base mb-0.5">🎵</span>
+                                <span class="text-[9px] font-extrabold">抖音</span>
                             </button>
-                            <button onclick="setPlatform('tiktok')" data-p="tiktok" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
-                                <i class="fab fa-tiktok text-lg mb-1"></i>
-                                <span class="text-[10px] font-black">TikTok</span>
+                            <button onclick="setPlatform('tiktok')" data-p="tiktok" class="platform-btn p-2.5 rounded-2xl border border-onyx/8 flex flex-col items-center bg-white">
+                                <span class="text-base mb-0.5">🎬</span>
+                                <span class="text-[9px] font-extrabold">TikTok</span>
                             </button>
-                            <button onclick="setPlatform('ins')" data-p="ins" class="platform-btn p-3 rounded-xl border-2 border-transparent bg-slate-50 flex flex-col items-center transition hover:shadow-md">
-                                <i class="fab fa-instagram text-pink-500 text-lg mb-1"></i>
-                                <span class="text-[10px] font-black">Instagram</span>
+                            <button onclick="setPlatform('ins')" data-p="ins" class="platform-btn p-2.5 rounded-2xl border border-onyx/8 flex flex-col items-center bg-white">
+                                <span class="text-base mb-0.5">📸</span>
+                                <span class="text-[9px] font-extrabold">Ins</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Image Upload -->
-                    <div class="mb-5">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">封面图 (可选)</label>
-                        <div class="relative">
-                            <div id="upload-zone" onclick="document.getElementById('file-input').click()" class="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition overflow-hidden">
-                                <img id="preview-img" class="hidden absolute inset-0 w-full h-full object-cover rounded-2xl">
-                                <i class="fas fa-cloud-upload-alt text-3xl text-slate-300 mb-2"></i>
-                                <span class="text-[10px] text-slate-400 font-bold">点击上传封面图，AI 将分析构图与色彩</span>
-                            </div>
-                            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
-                        </div>
-                    </div>
-
-                    <!-- Title -->
                     <div class="mb-4">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">原始标题</label>
-                        <input type="text" id="title" class="w-full bg-slate-50 border-none rounded-xl px-4 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-200" placeholder="输入您想发的标题...">
+                        <label class="block text-[9px] font-black text-onyx/30 uppercase tracking-[.25em] mb-2">封面图</label>
+                        <div onclick="document.getElementById('file-input').click()" class="relative aspect-video bg-cream rounded-2xl border-2 border-dashed border-onyx/10 flex flex-col items-center justify-center cursor-pointer hover:border-coral/40 hover:bg-coral/5 transition overflow-hidden group">
+                            <img id="preview-img" class="hidden absolute inset-0 w-full h-full object-cover rounded-2xl">
+                            <span class="text-3xl mb-1 group-hover:scale-110 transition">📷</span>
+                            <span class="text-[10px] text-onyx/30 font-bold">拖入封面图，Hop 会帮你诊断构图</span>
+                        </div>
+                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
                     </div>
 
-                    <!-- Body -->
-                    <div class="mb-6">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[.2em] mb-2">正文草稿</label>
-                        <textarea id="body" rows="5" class="w-full bg-slate-50 border-none rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-indigo-200" placeholder="输入内容正文..."></textarea>
+                    <!-- Title Input -->
+                    <div class="mb-3">
+                        <label class="block text-[9px] font-black text-onyx/30 uppercase tracking-[.25em] mb-2">标题</label>
+                        <input type="text" id="title" class="w-full bg-white border border-onyx/8 rounded-2xl px-4 py-3.5 text-sm font-semibold outline-none focus:border-coral/50 focus:shadow-[0_0_0_3px_rgba(255,127,110,.1)] transition placeholder:text-onyx/20" placeholder="写下你觉得最炸的标题...">
                     </div>
 
-                    <!-- Submit -->
-                    <button onclick="runAnalysis()" id="analyze-btn" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-indigo-200 hover:shadow-xl transition flex items-center justify-center">
-                        <i class="fas fa-wand-magic-sparkles mr-2"></i> AI 深度分析 & 自动优化
+                    <!-- Body Input -->
+                    <div class="mb-5">
+                        <label class="block text-[9px] font-black text-onyx/30 uppercase tracking-[.25em] mb-2">正文</label>
+                        <textarea id="body" rows="4" class="w-full bg-white border border-onyx/8 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-coral/50 focus:shadow-[0_0_0_3px_rgba(255,127,110,.1)] transition placeholder:text-onyx/20 resize-none" placeholder="把内容草稿扔进来..."></textarea>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <button onclick="runAnalysis()" id="analyze-btn" class="w-full bg-gradient-to-r from-coral to-coral-dark text-white py-4 rounded-2xl font-black text-base shadow-lg shadow-coral/20 hover:shadow-xl hover:shadow-coral/30 hover:scale-[1.02] transition-all flex items-center justify-center">
+                        🐰 让 Hop 预测一下
                     </button>
                 </div>
 
-                <!-- Trending Topics -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border" id="trending-box">
-                    <h3 class="text-sm font-black mb-3 flex items-center">
-                        <i class="fas fa-fire text-orange-500 mr-2"></i> 今日热点 · <span id="trending-platform-name" class="text-indigo-600 ml-1">小红书</span>
+                <!-- Trending Box -->
+                <div class="bento-card p-5">
+                    <h3 class="text-xs font-black mb-3 flex items-center">
+                        🔥 今日热点 · <span id="trending-platform-name" class="gradient-text ml-1">小红书</span>
                     </h3>
-                    <div id="trending-tags" class="flex flex-wrap gap-2">
-                        <span class="text-slate-400 text-xs">加载中...</span>
+                    <div id="trending-tags" class="flex flex-wrap gap-1.5">
+                        <span class="text-onyx/30 text-[10px]">加载中...</span>
                     </div>
                 </div>
             </div>
@@ -110,162 +157,172 @@
             <!-- Right: Results -->
             <div class="col-span-12 lg:col-span-7">
                 
-                <!-- Placeholder -->
-                <div id="placeholder" class="bg-white/50 border-2 border-dashed border-slate-200 rounded-3xl p-16 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
-                    <i class="fas fa-chart-line text-5xl text-slate-200 mb-4"></i>
-                    <h3 class="text-lg font-bold text-slate-400">等待分析...</h3>
-                    <p class="text-xs text-slate-300 mt-2 max-w-xs">输入您的标题和正文，AI 将为您生成爆款潜力评分、标题改写、排版优化和视觉建议。</p>
+                <!-- Empty State -->
+                <div id="placeholder" class="bento-card p-16 flex flex-col items-center justify-center text-center h-full min-h-[520px] aurora-bg">
+                    <div class="text-6xl mb-6 hop-sleep">🐰</div>
+                    <h3 class="text-xl font-black text-onyx/60">Hop 正在打盹...</h3>
+                    <p class="text-xs text-onyx/30 mt-2 max-w-[260px] leading-relaxed font-medium">
+                        把你的标题和正文扔给它，<br>它会告诉你这篇能不能火 ✨
+                    </p>
+                    <div class="mt-8 flex items-center space-x-6 text-[10px] text-onyx/20 font-bold">
+                        <span>📊 爆款评分</span>
+                        <span>✍️ 标题改写</span>
+                        <span>🎨 视觉诊断</span>
+                    </div>
                 </div>
 
-                <!-- Results (hidden initially) -->
-                <div id="results" class="hidden space-y-6 fade-in">
+                <!-- Results -->
+                <div id="results" class="hidden space-y-5">
 
-                    <!-- Score Overview -->
+                    <!-- Score + Hop Reaction -->
                     <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-5 bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl text-white flex flex-col items-center justify-center">
-                            <span class="text-[10px] font-black text-indigo-200 tracking-[.2em] uppercase mb-3">爆款潜力指数</span>
-                            <div class="relative w-32 h-32">
-                                <svg class="w-full h-full -rotate-90">
-                                    <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.15)" stroke-width="10" fill="none"/>
-                                    <circle id="score-circle" cx="64" cy="64" r="56" stroke="#fff" stroke-width="10" fill="none" stroke-dasharray="351.8" stroke-dashoffset="351.8" stroke-linecap="round" class="score-ring"/>
-                                </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span id="main-score" class="text-4xl font-black">--</span>
+                        <!-- Score Card -->
+                        <div class="col-span-5 bento-card p-6 flex flex-col items-center justify-center relative overflow-hidden" id="score-card">
+                            <div class="absolute inset-0 aurora-bg opacity-50"></div>
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span id="hop-reaction" class="text-4xl mb-3 hop-bounce">🐰</span>
+                                <span class="text-[9px] font-black text-onyx/30 uppercase tracking-[.2em] mb-2">爆款潜力</span>
+                                <div class="relative w-28 h-28">
+                                    <svg class="w-full h-full -rotate-90">
+                                        <circle cx="56" cy="56" r="48" stroke="rgba(0,0,0,0.04)" stroke-width="8" fill="none"/>
+                                        <circle id="score-circle" cx="56" cy="56" r="48" stroke="#FF7F6E" stroke-width="8" fill="none" stroke-dasharray="301.6" stroke-dashoffset="301.6" stroke-linecap="round" class="score-ring"/>
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span id="main-score" class="text-3xl font-black">--</span>
+                                    </div>
                                 </div>
+                                <p class="text-[10px] text-onyx/40 font-bold mt-3 text-center" id="hop-comment">等 Hop 看看...</p>
                             </div>
-                            <p class="text-indigo-100 text-[10px] mt-3 text-center" id="viral-prob">等待分析...</p>
                         </div>
 
-                        <div class="col-span-7 bg-white p-5 rounded-3xl shadow-sm border space-y-3">
-                            <h3 class="text-sm font-black mb-2">维度拆解</h3>
-                            <div id="breakdown" class="space-y-3"></div>
+                        <!-- Breakdown -->
+                        <div class="col-span-7 bento-card p-5 space-y-3">
+                            <h3 class="text-xs font-black flex items-center">📊 维度拆解</h3>
+                            <div id="breakdown" class="space-y-2.5 mt-2"></div>
                         </div>
                     </div>
 
                     <!-- Fatal Flaw -->
-                    <div id="fatal-flaw-box" class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start">
-                        <i class="fas fa-skull-crossbones text-red-400 mt-1 mr-3"></i>
+                    <div class="bento-card p-4 border-l-4 border-coral/60 bg-coral/5 flex items-start" id="fatal-flaw-box">
+                        <span class="text-lg mr-3">⚠️</span>
                         <div>
-                            <p class="text-xs font-black text-red-700">致命缺陷 (Fatal Flaw)</p>
-                            <p id="fatal-flaw" class="text-[11px] text-red-600 mt-1"></p>
+                            <p class="text-[10px] font-black text-coral-dark uppercase tracking-wider">Hop 发现了一个问题</p>
+                            <p id="fatal-flaw" class="text-xs text-onyx/70 mt-1 leading-relaxed"></p>
                         </div>
                     </div>
 
-                    <!-- Headlines -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border">
-                        <h3 class="font-black mb-4 flex items-center">
-                            <i class="fas fa-pen-fancy text-indigo-500 mr-2"></i> 标题进化方案
+                    <!-- Headlines Evolution -->
+                    <div class="bento-card p-6">
+                        <h3 class="font-black text-sm mb-4 flex items-center">
+                            ✍️ 标题进化方案 <span class="ml-2 text-[9px] bg-lavender/50 text-lavender-dark px-2 py-0.5 rounded-full font-extrabold">心理学改写</span>
                         </h3>
-                        <div id="headlines" class="space-y-3"></div>
+                        <div id="headlines" class="space-y-2.5"></div>
                     </div>
 
-                    <!-- Polished Body + Tags -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border">
-                            <h3 class="font-black mb-4 flex items-center">
-                                <i class="fas fa-magic text-emerald-500 mr-2"></i> 自动排版优化
-                            </h3>
-                            <div id="polished-body" class="bg-emerald-50/50 p-4 rounded-2xl text-xs leading-relaxed text-slate-700 whitespace-pre-wrap border border-emerald-100"></div>
+                    <!-- Polished Body + Tags + Vision -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bento-card p-5">
+                            <h3 class="font-black text-sm mb-3 flex items-center">🪄 自动排版</h3>
+                            <div id="polished-body" class="bg-cream/80 p-4 rounded-2xl text-xs leading-relaxed text-onyx/70 whitespace-pre-wrap border border-onyx/4 max-h-[240px] overflow-y-auto"></div>
                         </div>
-                        <div class="space-y-6">
-                            <div class="bg-white p-6 rounded-3xl shadow-sm border">
-                                <h3 class="font-black mb-4 flex items-center">
-                                    <i class="fas fa-hashtag text-indigo-500 mr-2"></i> 智能标签
-                                </h3>
-                                <div id="tags" class="flex flex-wrap gap-2"></div>
+                        <div class="space-y-4">
+                            <div class="bento-card p-5">
+                                <h3 class="font-black text-sm mb-3"># 智能标签</h3>
+                                <div id="tags" class="flex flex-wrap gap-1.5"></div>
                             </div>
-                            <div class="bg-white p-6 rounded-3xl shadow-sm border">
-                                <h3 class="font-black mb-4 flex items-center">
-                                    <i class="fas fa-eye text-amber-500 mr-2"></i> 视觉建议
-                                </h3>
-                                <ul id="visual-tips" class="space-y-2 text-xs text-slate-600"></ul>
+                            <div class="bento-card p-5">
+                                <h3 class="font-black text-sm mb-3">🎨 视觉建议</h3>
+                                <ul id="visual-tips" class="space-y-2 text-xs text-onyx/60"></ul>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Vision Analysis (shown only if image uploaded) -->
-                    <div id="vision-box" class="hidden bg-white p-6 rounded-3xl shadow-sm border">
-                        <h3 class="font-black mb-4 flex items-center">
-                            <i class="fas fa-image text-violet-500 mr-2"></i> 图片深度分析 (Gemini Vision)
+                    <!-- Vision Analysis -->
+                    <div id="vision-box" class="hidden bento-card p-6">
+                        <h3 class="font-black text-sm mb-4 flex items-center">
+                            👁️ 图片深度分析 <span class="ml-2 text-[9px] bg-lavender/50 text-lavender-dark px-2 py-0.5 rounded-full font-extrabold">Gemini Vision</span>
                         </h3>
-                        <div id="vision-result" class="space-y-3 text-xs text-slate-600"></div>
+                        <div id="vision-result" class="space-y-3 text-xs text-onyx/60"></div>
                     </div>
 
                     <!-- Reset -->
-                    <button onclick="resetUI()" class="w-full text-center text-indigo-600 font-bold text-sm py-3">
-                        <i class="fas fa-arrow-left mr-1"></i> 返回编辑器，继续优化
+                    <button onclick="resetUI()" class="w-full text-center text-coral font-bold text-xs py-4 hover:text-coral-dark transition">
+                        ← 回去继续改，Hop 等你
                     </button>
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="max-w-6xl mx-auto px-6 py-6 flex justify-center text-slate-300 text-[10px] font-bold space-x-4">
-        <span>© 2026 ViralScope AI</span>
+    <footer class="max-w-6xl mx-auto px-6 py-8 flex justify-center items-center space-x-3 text-[10px] text-onyx/20 font-bold">
+        <span>🐰</span>
+        <span>ViralScope · Powered by Gemini AI</span>
         <span>·</span>
-        <span>Powered by Google Gemini</span>
-        <span>·</span>
-        <span>v2.5</span>
+        <span>v3.0</span>
     </footer>
 
     <script>
         let currentPlatform = 'red';
         let imageBase64 = null;
 
-        // Platform selector
         function setPlatform(p) {
             currentPlatform = p;
             document.querySelectorAll('.platform-btn').forEach(btn => {
-                const isActive = btn.dataset.p === p;
-                btn.classList.toggle('border-indigo-500', isActive);
-                btn.classList.toggle('bg-indigo-50', isActive);
-                btn.classList.toggle('border-transparent', !isActive);
-                btn.classList.toggle('bg-slate-50', !isActive);
+                btn.classList.toggle('active', btn.dataset.p === p);
+                btn.classList.toggle('bg-white', btn.dataset.p !== p);
             });
             loadTrending(p);
         }
 
-        // Image handling
         function handleImage(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(ev) {
+            reader.onload = ev => {
                 const img = document.getElementById('preview-img');
                 img.src = ev.target.result;
                 img.classList.remove('hidden');
-                // Extract base64 (remove data:image/...;base64, prefix)
                 imageBase64 = ev.target.result.split(',')[1];
             };
             reader.readAsDataURL(file);
         }
 
-        // Load trending topics
-        async function loadTrending(platform) {
-            const nameMap = {red:'小红书',douyin:'抖音',tiktok:'TikTok',ins:'Instagram'};
-            document.getElementById('trending-platform-name').textContent = nameMap[platform] || '小红书';
+        async function loadTrending(p) {
+            const names = {red:'小红书',douyin:'抖音',tiktok:'TikTok',ins:'Instagram'};
+            document.getElementById('trending-platform-name').textContent = names[p];
             try {
                 const resp = await fetch('/api/trending');
                 const data = await resp.json();
-                const topics = data.platforms?.[platform]?.topics || [];
-                document.getElementById('trending-tags').innerHTML = topics.map(t =>
-                    `<span class="px-2.5 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100">${t}</span>`
+                const topics = data.platforms?.[p]?.topics || [];
+                document.getElementById('trending-tags').innerHTML = topics.map((t,i) =>
+                    `<span class="px-2.5 py-1 bg-gold/10 text-gold border border-gold/20 rounded-full text-[9px] font-bold tag-float" style="animation-delay:${i*.15}s">${t}</span>`
                 ).join('');
             } catch(e) {
-                document.getElementById('trending-tags').innerHTML = '<span class="text-slate-400 text-xs">暂无数据</span>';
+                document.getElementById('trending-tags').innerHTML = '<span class="text-onyx/20 text-[10px]">暂无数据</span>';
             }
         }
 
-        // Main analysis
+        function showConfetti() {
+            const colors = ['#FF7F6E','#E0D7FF','#F3C35C','#7ED4AD'];
+            for (let i=0; i<20; i++) {
+                const el = document.createElement('div');
+                el.className = 'confetti';
+                el.style.cssText = `left:${Math.random()*100}vw;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${colors[i%4]};border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*.5}s;animation-duration:${2+Math.random()*2}s;`;
+                document.body.appendChild(el);
+                setTimeout(()=>el.remove(), 4000);
+            }
+        }
+
         async function runAnalysis() {
             const title = document.getElementById('title').value.trim();
             const body = document.getElementById('body').value.trim();
-            if (!title && !body) { alert('请至少输入标题或正文'); return; }
+            if (!title && !body) { alert('Hop 说：至少给我个标题呀 🐰'); return; }
 
             const btn = document.getElementById('analyze-btn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Gemini AI 深度分析中...';
-            btn.classList.add('analyzing');
+            btn.innerHTML = '🔍 Hop 正在认真分析中...';
+            btn.classList.add('analyzing-glow');
+            document.getElementById('hop-idle').textContent = '🧐';
 
             try {
                 const payload = { platform: currentPlatform, title, body };
@@ -277,52 +334,71 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await resp.json();
-                
-                if (data.error) { alert('分析出错: ' + data.error); return; }
+                if (data.error) { alert('Hop 遇到了问题: ' + data.error); return; }
                 renderResults(data);
             } catch(e) {
-                alert('网络错误，请重试');
+                alert('网络出了点问题，Hop 建议你重试一下 🐰');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i> AI 深度分析 & 自动优化';
-                btn.classList.remove('analyzing');
+                btn.innerHTML = '🐰 让 Hop 预测一下';
+                btn.classList.remove('analyzing-glow');
+                document.getElementById('hop-idle').textContent = '🐰';
             }
         }
 
         function renderResults(data) {
             const t = data.text_analysis || {};
             const v = data.vision_analysis;
-
-            // Score
             const score = t.score || 0;
+
+            // Hop reaction based on score
+            const hop = document.getElementById('hop-reaction');
+            const comment = document.getElementById('hop-comment');
+            const scoreCard = document.getElementById('score-card');
+
+            if (score >= 85) {
+                hop.textContent = '🥳'; hop.classList.add('hop-bounce');
+                comment.textContent = '"这篇有主角光环！冲！" — Hop';
+                scoreCard.style.background = 'linear-gradient(135deg, rgba(126,212,173,.1), rgba(243,195,92,.1))';
+                showConfetti();
+            } else if (score >= 60) {
+                hop.textContent = '🤔';
+                comment.textContent = '"还行，但 Hop 觉得可以更好" — Hop';
+                scoreCard.style.background = 'linear-gradient(135deg, rgba(224,215,255,.1), rgba(252,249,242,.5))';
+            } else {
+                hop.textContent = '😰';
+                comment.textContent = '"别慌，Hop 帮你改改就能救回来" — Hop';
+                scoreCard.style.background = 'linear-gradient(135deg, rgba(255,127,110,.08), rgba(252,249,242,.5))';
+            }
+
+            // Score ring
             document.getElementById('main-score').textContent = score;
             const circle = document.getElementById('score-circle');
-            circle.style.strokeDashoffset = 351.8 - (351.8 * score / 100);
-            document.getElementById('viral-prob').textContent = `进入二级流量池概率: ${t.viral_probability || score+'%'}`;
+            circle.style.strokeDashoffset = 301.6 - (301.6 * score / 100);
+            circle.style.stroke = score >= 85 ? '#7ED4AD' : score >= 60 ? '#F3C35C' : '#FF7F6E';
 
             // Breakdown
             const bd = t.score_breakdown || {};
-            document.getElementById('breakdown').innerHTML = Object.entries(bd).map(([k,v]) => `
-                <div>
-                    <div class="flex justify-between text-[11px] mb-1">
-                        <span class="font-bold text-slate-600">${k}</span>
-                        <span class="font-black text-indigo-600">${v}</span>
+            document.getElementById('breakdown').innerHTML = Object.entries(bd).map(([k,val]) => `
+                <div class="fade-up">
+                    <div class="flex justify-between text-[10px] mb-1">
+                        <span class="font-bold text-onyx/60">${k}</span>
+                        <span class="font-black ${val>=80?'text-mint':val>=60?'text-gold':'text-coral'}">${val}</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-indigo-500 h-full rounded-full transition-all duration-1000" style="width:${v}%"></div>
+                    <div class="w-full bg-onyx/4 h-1.5 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-1000 ${val>=80?'bg-mint':val>=60?'bg-gold':'bg-coral'}" style="width:${val}%"></div>
                     </div>
                 </div>
             `).join('');
 
             // Fatal flaw
-            document.getElementById('fatal-flaw').textContent = t.fatal_flaw || '无明显致命问题';
+            document.getElementById('fatal-flaw').textContent = t.fatal_flaw || 'Hop 没有发现明显问题 ✨';
 
             // Headlines
-            const headlines = t.headlines || [];
-            document.getElementById('headlines').innerHTML = headlines.map((h,i) => `
-                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm hover:border-indigo-300 cursor-pointer transition flex justify-between items-center group" onclick="copyText(this)">
-                    <span>${h}</span>
-                    <i class="fas fa-copy text-slate-300 group-hover:text-indigo-500 ml-2 text-xs"></i>
+            document.getElementById('headlines').innerHTML = (t.headlines||[]).map(h => `
+                <div class="p-3.5 bg-cream/80 border border-onyx/6 rounded-2xl text-sm hover:border-coral/40 cursor-pointer transition flex justify-between items-center group" onclick="copyText(this)">
+                    <span class="font-medium">${h}</span>
+                    <span class="text-[9px] bg-lavender/40 text-lavender-dark px-2 py-0.5 rounded-full font-black opacity-0 group-hover:opacity-100 transition ml-2 whitespace-nowrap">点击复制</span>
                 </div>
             `).join('');
 
@@ -330,67 +406,52 @@
             document.getElementById('polished-body').textContent = t.polished_body || '';
 
             // Tags
-            const tags = t.tags || [];
-            document.getElementById('tags').innerHTML = tags.map(tag =>
-                `<span class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold border border-indigo-100">${tag}</span>`
+            document.getElementById('tags').innerHTML = (t.tags||[]).map(tag =>
+                `<span class="px-2.5 py-1 bg-lavender/30 text-lavender-dark rounded-full text-[10px] font-bold border border-lavender/30">${tag}</span>`
             ).join('');
 
             // Visual tips
-            const tips = t.visual_tips || [];
-            document.getElementById('visual-tips').innerHTML = tips.map(tip =>
-                `<li class="flex items-start"><i class="fas fa-check-circle text-emerald-400 mr-2 mt-0.5 text-[10px]"></i>${tip}</li>`
+            document.getElementById('visual-tips').innerHTML = (t.visual_tips||[]).map(tip =>
+                `<li class="flex items-start"><span class="text-mint mr-2 mt-0.5 text-[10px]">●</span>${tip}</li>`
             ).join('');
 
-            // Vision analysis
+            // Vision
             if (v && !v.error) {
                 document.getElementById('vision-box').classList.remove('hidden');
                 document.getElementById('vision-result').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-violet-50 p-3 rounded-xl">
-                            <span class="text-[10px] font-black text-violet-400 uppercase">视觉评分</span>
-                            <div class="text-2xl font-black text-violet-600 mt-1">${v.visual_score || '--'}</div>
-                        </div>
-                        <div class="bg-violet-50 p-3 rounded-xl">
-                            <span class="text-[10px] font-black text-violet-400 uppercase">平台匹配度</span>
-                            <div class="text-xs text-violet-700 mt-1 font-medium">${v.platform_fit || '--'}</div>
-                        </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-lavender/15 p-3 rounded-2xl"><span class="text-[9px] font-black text-lavender-dark uppercase">视觉评分</span><div class="text-2xl font-black text-onyx mt-1">${v.visual_score||'--'}</div></div>
+                        <div class="bg-lavender/15 p-3 rounded-2xl"><span class="text-[9px] font-black text-lavender-dark uppercase">平台匹配</span><div class="text-xs text-onyx/70 mt-1 font-medium">${v.platform_fit||'--'}</div></div>
                     </div>
-                    <div class="mt-3 space-y-2">
-                        <p><strong>构图:</strong> ${v.composition || ''}</p>
-                        <p><strong>色彩:</strong> ${v.color_analysis || ''}</p>
-                        <p><strong>文字叠加建议:</strong> ${v.text_overlay_suggestion || ''}</p>
-                        <p><strong>裁剪建议:</strong> ${v.crop_suggestion || ''}</p>
-                    </div>
-                    <div class="mt-3">
-                        <strong>改进建议:</strong>
-                        <ul class="mt-1 space-y-1">${(v.improvement_tips||[]).map(t=>`<li>• ${t}</li>`).join('')}</ul>
+                    <div class="mt-3 space-y-1.5 text-xs text-onyx/60">
+                        <p><strong>构图:</strong> ${v.composition||''}</p>
+                        <p><strong>色彩:</strong> ${v.color_analysis||''}</p>
+                        <p><strong>文字建议:</strong> ${v.text_overlay_suggestion||''}</p>
+                        <p><strong>裁剪:</strong> ${v.crop_suggestion||''}</p>
                     </div>
                 `;
-            } else {
-                document.getElementById('vision-box').classList.add('hidden');
-            }
+            } else { document.getElementById('vision-box').classList.add('hidden'); }
 
             // Show results
             document.getElementById('placeholder').classList.add('hidden');
             document.getElementById('results').classList.remove('hidden');
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('results').scrollIntoView({ behavior:'smooth' });
         }
 
         function copyText(el) {
             const text = el.querySelector('span').textContent;
             navigator.clipboard.writeText(text);
-            const icon = el.querySelector('i');
-            icon.className = 'fas fa-check text-emerald-500 ml-2 text-xs';
-            setTimeout(() => { icon.className = 'fas fa-copy text-slate-300 group-hover:text-indigo-500 ml-2 text-xs'; }, 1500);
+            const orig = el.innerHTML;
+            el.innerHTML = '<span class="text-mint font-bold text-sm copy-toast">✅ 已复制到剪贴板</span>';
+            setTimeout(()=>{ el.innerHTML = orig; }, 1200);
         }
 
         function resetUI() {
             document.getElementById('placeholder').classList.remove('hidden');
             document.getElementById('results').classList.add('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top:0, behavior:'smooth' });
         }
 
-        // Init
         loadTrending('red');
     </script>
 </body>
