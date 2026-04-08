@@ -1,8 +1,24 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import os, json, urllib.request
 
 app = Flask(__name__)
 
+# ===== 首页：直接读文件返回，不依赖 Flask static =====
+HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "index.html")
+
+@app.route("/")
+def index():
+    try:
+        with open(HTML_PATH, "r", encoding="utf-8") as f:
+            return Response(f.read(), status=200, content_type="text/html; charset=utf-8")
+    except FileNotFoundError:
+        return Response(
+            f"<h1>index.html not found</h1><p>Looking at: {HTML_PATH}</p>"
+            f"<p>Files in project root: {os.listdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))}</p>",
+            status=500, content_type="text/html"
+        )
+
+# ===== Gemini 配置 =====
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 PLATFORMS = {
@@ -76,7 +92,7 @@ def gemini(prompt, img_b64=None):
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "5.0"})
+    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "5.0", "html_path": HTML_PATH, "html_exists": os.path.exists(HTML_PATH)})
 
 
 @app.route("/api/trending")
