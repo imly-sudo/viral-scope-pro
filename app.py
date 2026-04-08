@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os, json, urllib.request
 
-app = Flask(__name__, static_folder="public", static_url_path="")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "public"), static_url_path="")
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 
@@ -88,9 +89,11 @@ def gemini(prompt, img_b64=None):
         return {"error": str(e)}
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @app.route("/")
 def index():
-    return send_from_directory("public", "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "public"), "index.html")
 
 
 @app.route("/api/health")
