@@ -1,12 +1,7 @@
-# Ignore everything
 *
-
-# Only track these files
 !.gitignore
-!api/
-!api/index.py
+!app.py
+!requirements.txt
+!vercel.json
 !public/
 !public/index.html
-!vercel.json
-!requirements.txt
-!DEPLOY_GUIDE.md
