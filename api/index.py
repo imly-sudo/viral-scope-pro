@@ -1,18 +1,11 @@
-from flask import Flask, request, jsonify
+from http.server import BaseHTTPRequestHandler
 import os
 import json
-import base64
 import urllib.request
-import urllib.parse
-
-app = Flask(__name__)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
-# ============================================================
-# Platform-specific scoring configs & viral knowledge base
-# ============================================================
 PLATFORM_CONFIGS = {
     "red": {
         "name": "小红书",
@@ -56,52 +49,43 @@ PLATFORM_CONFIGS = {
     }
 }
 
+TRENDING_DATA = {
+    "last_updated": "2026-04-08",
+    "platforms": {
+        "red": {"name": "小红书", "topics": ["2026灵性防护清单", "沉浸式书桌改造", "AI数码好物", "宋韵轻国风", "小米SU7真实体验", "极简咖啡角", "春季穿搭公式", "新能源车露营", "副业自由", "治愈系风景"]},
+        "douyin": {"name": "抖音", "topics": ["荣耀Magic9", "比亚迪宋Ultra", "AI替代打工人", "春日野餐", "数码开箱", "新能源对比测评", "沉浸式收纳", "国货之光", "职场逆袭", "一人食"]},
+        "tiktok": {"name": "TikTok", "topics": ["permanent jewelry", "AI productivity", "desk setup 2026", "EV road trip", "crystal healing", "minimalist living", "tech unboxing", "side hustle", "aesthetic room", "wellness routine"]},
+        "ins": {"name": "Instagram", "topics": ["chunky gold jewelry", "quiet luxury", "desk aesthetics", "EV lifestyle", "crystal collection", "old money style", "tech minimal", "wellness ritual", "capsule wardrobe", "slow living"]}
+    }
+}
+
+
 def call_gemini(prompt, image_base64=None):
-    """Call Gemini API with text and optional image."""
     parts = [{"text": prompt}]
     if image_base64:
-        parts.insert(0, {
-            "inlineData": {
-                "mimeType": "image/jpeg",
-                "data": image_base64
-            }
-        })
-    
+        parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}})
+
     payload = json.dumps({
         "contents": [{"parts": parts}],
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 4096,
-            "responseMimeType": "application/json"
-        }
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 4096, "responseMimeType": "application/json"}
     }).encode("utf-8")
-    
-    req = urllib.request.Request(
-        GEMINI_URL,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    
+
+    req = urllib.request.Request(GEMINI_URL, data=payload, headers={"Content-Type": "application/json"}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode("utf-8"))
             text = result["candidates"][0]["content"]["parts"][0]["text"]
-            # Parse JSON from Gemini response
             return json.loads(text)
     except Exception as e:
         return {"error": str(e)}
 
 
 def build_analysis_prompt(platform, title, body):
-    """Build the Gemini analysis prompt with platform-specific knowledge."""
     config = PLATFORM_CONFIGS.get(platform, PLATFORM_CONFIGS["red"])
-    
     return f"""你是一个全平台爆款内容预测专家 (ViralScope AI)。你精通社交媒体算法、消费心理学和视觉传达。
 
 ## 目标平台: {config['name']}
 ## 该平台的评分权重: {config['weights_desc']}
-
 ## 该平台的爆款知识库:
 {config['style_guide']}
 
@@ -146,92 +130,76 @@ def build_analysis_prompt(platform, title, body):
 
 
 def build_vision_prompt(platform):
-    """Build a vision-specific prompt for image analysis."""
     config = PLATFORM_CONFIGS.get(platform, PLATFORM_CONFIGS["red"])
-    
     return f"""你是一个专业的社交媒体视觉分析专家。请分析这张图片作为「{config['name']}」平台的封面图/主图的表现力。
 
 请严格按照以下JSON格式输出（不要输出任何其他内容）:
 
 {{
   "visual_score": <0-100的整数>,
-  "composition": "<构图分析：主体位置、留白、视觉重心>",
-  "color_analysis": "<色彩分析：饱和度、对比度、色调是否适合该平台>",
-  "text_overlay_suggestion": "<建议在图片的哪个位置添加标题文字，用什么颜色>",
-  "crop_suggestion": "<是否需要裁剪，建议裁剪比例>",
-  "improvement_tips": [
-    "<具体视觉改进建议1>",
-    "<具体视觉改进建议2>",
-    "<具体视觉改进建议3>"
-  ],
-  "platform_fit": "<该图片与{config['name']}平台审美的匹配度分析>"
+  "composition": "<构图分析>",
+  "color_analysis": "<色彩分析>",
+  "text_overlay_suggestion": "<文字叠加建议>",
+  "crop_suggestion": "<裁剪建议>",
+  "improvement_tips": ["<建议1>", "<建议2>", "<建议3>"],
+  "platform_fit": "<平台匹配度分析>"
 }}"""
 
 
-@app.route("/")
-def index():
-    try:
-        with open("static/index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "<h1>ViralScope Pro - 部署中</h1>", 200
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/api/health":
+            self._json_response({"status": "ok", "gemini_configured": bool(GEMINI_API_KEY), "version": "3.0.0"})
+        elif self.path == "/api/trending":
+            self._json_response(TRENDING_DATA)
+        else:
+            self.send_response(404)
+            self.end_headers()
 
+    def do_POST(self):
+        if self.path == "/api/analyze":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body) if body else {}
 
-@app.route("/api/analyze", methods=["POST"])
-def analyze():
-    """Main analysis endpoint - text + optional image."""
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
-    
-    # Handle JSON body
-    data = request.json or {}
-    platform = data.get("platform", "red")
-    title = data.get("title", "")
-    body = data.get("body", "")
-    image_b64 = data.get("image", None)  # Base64 encoded image from frontend
-    
-    config = PLATFORM_CONFIGS.get(platform, PLATFORM_CONFIGS["red"])
-    
-    # Step 1: Analyze text content with Gemini
-    text_prompt = build_analysis_prompt(platform, title, body)
-    text_result = call_gemini(text_prompt)
-    
-    # Step 2: If image provided, analyze it too
-    vision_result = None
-    if image_b64:
-        vision_prompt = build_vision_prompt(platform)
-        vision_result = call_gemini(vision_prompt, image_b64)
-    
-    # Merge results
-    response = {
-        "platform_name": config["name"],
-        "weights": config["weights_desc"],
-        "text_analysis": text_result,
-        "vision_analysis": vision_result
-    }
-    
-    return jsonify(response)
+            platform = data.get("platform", "red")
+            title = data.get("title", "")
+            text_body = data.get("body", "")
+            image_b64 = data.get("image", None)
 
+            if not GEMINI_API_KEY:
+                self._json_response({"error": "GEMINI_API_KEY not configured"}, 500)
+                return
 
-@app.route("/api/trending", methods=["GET"])
-def get_trending():
-    """Return cached trending topics (updated by cron job)."""
-    try:
-        with open("api/trending_cache.json", "r", encoding="utf-8") as f:
-            return jsonify(json.load(f))
-    except FileNotFoundError:
-        return jsonify({"topics": [], "last_updated": "尚未更新", "message": "热点数据正在初始化中..."})
+            config = PLATFORM_CONFIGS.get(platform, PLATFORM_CONFIGS["red"])
+            text_prompt = build_analysis_prompt(platform, title, text_body)
+            text_result = call_gemini(text_prompt)
 
+            vision_result = None
+            if image_b64:
+                vision_prompt = build_vision_prompt(platform)
+                vision_result = call_gemini(vision_prompt, image_b64)
 
-@app.route("/api/health", methods=["GET"])
-def health():
-    """Health check endpoint."""
-    return jsonify({
-        "status": "ok",
-        "gemini_configured": bool(GEMINI_API_KEY),
-        "version": "2.5.0"
-    })
+            self._json_response({
+                "platform_name": config["name"],
+                "weights": config["weights_desc"],
+                "text_analysis": text_result,
+                "vision_analysis": vision_result
+            })
+        else:
+            self.send_response(404)
+            self.end_headers()
 
+    def _json_response(self, data, status=200):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
-if __name__ == "__main__":
-    app.run()
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
