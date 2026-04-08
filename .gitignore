@@ -1,9 +1,8 @@
 *
 !.gitignore
-!api/
 !api/**
 !app.py
-!public/
 !public/**
 !vercel.json
 !requirements.txt
+!pyproject.toml
