@@ -1,68 +1,47 @@
 from flask import Flask, request, jsonify
 import os, json, urllib.request
 
-import pathlib
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
-
-app = Flask(__name__, static_folder=str(BASE_DIR / "public"), static_url_path="")
-
-@app.route("/")
-def index():
-    return app.send_static_file("index.html")
+app = Flask(__name__)
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 PLATFORMS = {
     "red": {
         "name": "小红书",
-        "weights": "封面审美(40%) + 实用干货(30%) + SEO标签(20%) + 评论引导(10%)",
-        "guide": """你必须严格遵循以下小红书爆款创作规则：
-【标题规则】必须包含数字+利益点+情绪词，如"3步搞定""保姆级""后悔没早点知道""别再XX了"
-【封面规则】高饱和度、杂志感、文字需覆盖20%以上面积、使用大标题贴纸
-【正文规则】
-- 每段开头必须有一个相关Emoji（如✨📍💡🔥）
-- 使用清单体（1️⃣2️⃣3️⃣）或分点描述
-- 段落之间空一行，每段不超过3行
-- 结尾必须有互动引导语（如"你觉得呢？评论区告诉我～"）
-- 结尾必须附上5-8个热门标签
-【标签规则】混搭：3个大流量词 + 3个精准长尾词 + 2个情绪词
-【爆款参考】"我的2026年度灵性防护清单🧿"(45k赞)、"沉浸式书桌改造2026💻"(62k赞)、"小米SU7对比特斯拉：30天真心话🚗"(88k赞)"""
+        "weights": {"封面审美": 40, "实用干货": 30, "SEO标签": 20, "评论引导": 10},
+        "guide": """小红书爆款铁律：
+- 标题必须：数字+利益点+情绪词（"3步搞定""保姆级""后悔没早知道"）
+- 正文：每段Emoji开头，清单体，段间空行，每段≤3行
+- 结尾：互动引导语 + 5-8个标签（3大流量+3长尾+2情绪）
+- 封面：高饱和、杂志感、文字覆盖≥20%面积"""
     },
     "douyin": {
         "name": "抖音",
-        "weights": "黄金3s钩子(50%) + 情绪张力(30%) + 节奏感(10%) + 热点趋势(10%)",
-        "guide": """你必须严格遵循以下抖音爆款创作规则：
-【标题规则】反差冲突+悬念，如"别急着买！""千万别这样做""看完我沉默了""99%的人都不知道"
-【封面规则】强视觉反差、大字报风格、人脸表情夸张、颜色对比强烈
-【正文规则】
-- 每句话不超过10个字
-- 每句一个情绪冲击点
-- 金句密集、节奏快
-- 使用短促有力的口语化表达
-- 开头必须是一个能引发好奇的问题或反转
-【节奏规则】前3秒必须有钩子（提问/反转/冲突/惊人数据）
-【爆款参考】"荣耀Magic9全系直屏！屏幕天花板？"(1.2M赞)、"比亚迪宋Ultra EV全域开挂！"(2.1M赞)"""
+        "weights": {"黄金3s钩子": 50, "情绪张力": 30, "节奏感": 10, "热点趋势": 10},
+        "guide": """抖音爆款铁律：
+- 标题：反差+悬念（"别急着买！""99%的人不知道"）
+- 前3秒必须有钩子（提问/反转/冲突/惊人数据）
+- 每句≤10字，每句一个情绪冲击点
+- 口语化、金句密集、节奏快"""
     },
     "tiktok": {
         "name": "TikTok",
-        "weights": "Hook 3s(50%) + Trend alignment(30%) + Shareability(10%) + Hashtags(10%)",
-        "guide": """Strict TikTok viral creation rules:
-【Title】Short, punchy, curiosity-driven. "Wait for it...", "Nobody talks about this", "POV:"
-【Visual】High contrast, fast cuts, face-to-camera opening, trending filters
-【Caption】2-3 lines max, use emoji sparingly, reference trending sounds
-【Hashtags】Mix 2 trending + 2 niche + 1 branded, total 3-5
-【Tone】Casual, authentic, slightly provocative, speak like a friend
-【Viral ref】"Permanent Jewelry: Worth it in 2026?"(850k views)"""
+        "weights": {"Hook 3s": 50, "Trend alignment": 30, "Shareability": 10, "Hashtags": 10},
+        "guide": """TikTok viral rules:
+- Title: Short, punchy, curiosity-driven ("Wait for it...", "POV:", "Nobody talks about this")
+- Hook in first 3 seconds
+- Caption: 2-3 lines max, reference trending sounds
+- Hashtags: 2 trending + 2 niche + 1 branded
+- Tone: Casual, authentic, speak like a friend"""
     },
     "ins": {
         "name": "Instagram",
-        "weights": "高级调性(50%) + 互动引导(30%) + 标签策略(20%)",
-        "guide": """你必须严格遵循以下Instagram爆款创作规则：
-【Caption规则】精炼、高级感、英文优先或中英混搭、"less is more"
-【视觉规则】色调统一、滤镜一致性、负空间构图
-【互动规则】结尾用提问句引导评论、设置Story投票/滑块
-【Hashtags】15-20个，分层：5个大词(50w+帖子) + 10个精准词(1-10w帖子) + 5个品牌词
-【爆款参考】"Chunky Gold Era: Bold Cuffs"(110k likes)"""
+        "weights": {"高级调性": 50, "互动引导": 30, "标签策略": 20},
+        "guide": """Instagram爆款铁律：
+- Caption：精炼高级感，英文优先或中英混搭，less is more
+- 视觉：色调统一、负空间构图
+- 结尾提问引导评论
+- Hashtags 15-20个：5大词(50w+) + 10精准词(1-10w) + 5品牌词"""
     }
 }
 
@@ -83,7 +62,7 @@ def gemini(prompt, img_b64=None):
         parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
     body = json.dumps({
         "contents": [{"parts": parts}],
-        "generationConfig": {"temperature": 0.75, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
+        "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
     }).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
     try:
@@ -97,7 +76,7 @@ def gemini(prompt, img_b64=None):
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "4.0"})
+    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "5.0"})
 
 
 @app.route("/api/trending")
@@ -113,78 +92,102 @@ def analyze():
     d = request.json or {}
     plat = d.get("platform", "red")
     title = d.get("title", "")
-    body = d.get("body", "")
+    body_text = d.get("body", "")
     img = d.get("image")
     cfg = PLATFORMS.get(plat, PLATFORMS["red"])
     hot = TRENDING.get(plat, [])
+    weights = cfg["weights"]
+    weight_str = " / ".join([f"{k}({v}%)" for k, v in weights.items()])
+    dims = list(weights.keys())
 
-    prompt = f"""# Role: ViralScope AI 爆款预测与内容优化专家
+    prompt = f"""你是一个毒舌但极其专业的{cfg['name']}爆款内容操盘手。用户把草稿交给你，你的任务不是"提建议"，而是直接动手帮他改到能爆的程度。
 
-你是全球顶尖的社交媒体内容策略师。你的任务是：
-1. 对用户的草稿进行精准评分
-2. **直接帮用户改好内容**——不是给建议，而是给出**可以直接复制粘贴发布的成品**
+## 用户原始草稿
+标题：{title}
+正文：{body_text}
 
-## 目标平台: {cfg['name']}
-## 评分权重: {cfg['weights']}
-
-## 平台创作规则（你必须严格遵循）:
+## 平台：{cfg['name']}
+## 评分维度：{weight_str}
+## 平台规则：
 {cfg['guide']}
 
-## 当前该平台热门话题:
+## 当前热门话题（你必须从中挑选相关的融入改写）：
 {', '.join(hot)}
 
-## 用户提交的原始内容:
-标题: {title}
-正文: {body}
+---
 
-## 你必须输出以下JSON（严格遵循格式，不要输出任何其他内容）:
+## 你的任务（按顺序执行）：
+
+### 第一步：诊断原稿
+逐句分析原文，找出以下问题：
+- 标题有没有钩子？能不能在信息流里抢到注意力？
+- 正文结构是否符合平台阅读习惯？
+- 有没有故事性/画面感/情绪共鸣？
+- 标签是否精准？有没有蹭到热点？
+- 有没有互动引导？
+
+### 第二步：重写内容
+- 标题：给出4个完全不同策略的改写版本，每个都必须比原标题强10倍
+- 正文：从头到尾重写，不是在原文上加几个emoji就完事。你要：
+  * 重新组织结构和叙事逻辑
+  * 加入具体细节、数据、场景描写
+  * 制造情绪起伏（先痛点→再方案→再获得感）
+  * 融入至少2个当前热门话题的关键词
+  * 长度必须是原文的2倍以上
+  * 严格遵循平台排版规则
+- 标签：根据内容重新生成，禁止用万能标签，每个标签必须和内容强相关
+
+### 第三步：评分
+对原稿（不是改后的）按维度打分，要求严格，60分以下的内容就该是60分以下。
+
+## 输出JSON格式（严格遵循，不要输出任何JSON以外的内容）：
 
 {{
-  "score": <0-100整数，严格按权重计算>,
+  "fatal_flaw": "用一句毒舌但准确的话指出原稿最致命的问题",
+  "diagnosis": "用3-5句话逐点分析原稿的具体问题，要引用原文的具体句子来说明为什么不行",
+  "score": 整数0-100,
   "score_breakdown": {{
-    "<维度1名称>": <0-100>,
-    "<维度2名称>": <0-100>,
-    "<维度3名称>": <0-100>,
-    "<维度4名称>": <0-100>
+    "{dims[0]}": 整数0-100,
+    "{dims[1]}": 整数0-100,
+    "{dims[2]}": 整数0-100{(',' + chr(10) + '    "' + dims[3] + '": 整数0-100') if len(dims) > 3 else ''}
   }},
   "headlines": [
-    "【损失厌恶】<在原标题基础上改写，加入让人害怕错过的元素>",
-    "【悬念钩子】<在原标题基础上改写，留下好奇心缺口>",
-    "【获得感】<在原标题基础上改写，强调用户能获得的具体利益>",
-    "【身份认同】<在原标题基础上改写，让用户觉得'这就是我'>"
+    "【恐惧驱动】用害怕错过/损失厌恶改写的标题",
+    "【悬念缺口】用好奇心缺口改写的标题",
+    "【利益承诺】用具体获得感改写的标题",
+    "【身份共鸣】用'这说的就是我'改写的标题"
   ],
-  "polished_body": "<这里必须是完整的、可以直接复制粘贴发布的正文。不是建议，不是提示，而是你帮用户改好的完整成品。必须包含：Emoji引导、分段排版、互动引导语、热门标签。长度至少是原文的1.5倍>",
+  "polished_body": "完整重写后的正文。必须是可以直接复制粘贴发布的成品。包含emoji排版、分段、互动引导、热门标签。禁止偷懒只改几个词。",
+  "tags": ["#标签1", "#标签2", "#标签3", "#标签4", "#标签5", "#标签6", "#标签7", "#标签8"],
   "visual_tips": [
-    "<具体可执行的视觉修改指令，如：将主体放在画面左1/3处，右侧留白用于添加文字>",
-    "<具体的色彩调整指令，如：提高饱和度15%，暖色调滤镜，对比度+10>",
-    "<具体的文字叠加指令，如：在右上角添加白色粗体标题，字号占画面高度的1/5>"
+    "具体到参数的封面/配图修改指令1",
+    "具体到参数的封面/配图修改指令2",
+    "具体到参数的封面/配图修改指令3"
   ],
-  "tags": ["#标签1", "#标签2", "#标签3", "#标签4", "#标签5", "#标签6", "#标签7"],
-  "fatal_flaw": "<一针见血指出当前内容最致命的问题，以及具体的修复方法>",
-  "viral_probability": "<基于评分给出进入二级流量池的概率，如'72%'>",
-  "best_post_time": "<根据该平台的算法特征，建议的最佳发布时间段>",
-  "competitor_angle": "<如果要蹭热点，建议从哪个角度切入当前热门话题>"
+  "viral_probability": "进入二级流量池的概率估算，如32%",
+  "best_post_time": "最佳发布时间段",
+  "competitor_angle": "如何蹭当前热点的具体角度"
 }}
 
-## 关键要求:
-1. polished_body 必须是**完整成品**，用户可以直接复制粘贴发到{cfg['name']}上
-2. 标题改写必须基于用户原标题，不能凭空创造
-3. visual_tips 必须是具体到参数的操作指令
-4. fatal_flaw 必须指出问题并给出解决方案
-5. 如果原文太短或太空洞，你必须帮用户扩写，加入细节和故事性"""
+## 铁律：
+1. polished_body 必须从头重写，禁止只在原文上微调
+2. 如果原文只有一两句话，你必须扩写到至少200字
+3. 标签必须和改写后的内容匹配，禁止用通用标签
+4. score要诚实，烂内容就给低分，不要客气
+5. 所有标题改写必须基于原标题的核心主题，不能跑题"""
 
     result = gemini(prompt, img)
     vision = None
     if img:
-        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。输出JSON:
+        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估，不要客气。输出JSON:
 {{
-  "visual_score": <0-100>,
-  "composition": "<构图分析：主体位置、留白、视觉重心>",
-  "color_analysis": "<色彩分析：饱和度、对比度、色调>",
-  "text_overlay_suggestion": "<在图片哪个位置放文字、用什么颜色什么字号>",
-  "crop_suggestion": "<裁剪比例建议，如4:3或1:1>",
-  "improvement_tips": ["<改进1>", "<改进2>", "<改进3>"],
-  "platform_fit": "<与{cfg['name']}审美的匹配度>"
+  "visual_score": 0-100整数,
+  "composition": "构图分析：主体位置、留白、视觉重心、是否符合平台审美",
+  "color_analysis": "色彩：饱和度、对比度、色调是否适合{cfg['name']}",
+  "text_overlay_suggestion": "在图片哪个位置放文字、用什么颜色什么字号、具体参数",
+  "crop_suggestion": "裁剪比例建议及原因",
+  "improvement_tips": ["具体改进指令1（带参数）", "具体改进指令2（带参数）", "具体改进指令3（带参数）"],
+  "platform_fit": "与{cfg['name']}审美的匹配度分析"
 }}""", img)
 
     return jsonify({"platform_name": cfg["name"], "text_analysis": result, "vision_analysis": vision}), 200, {"Access-Control-Allow-Origin": "*"}
