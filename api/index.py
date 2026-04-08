@@ -3,8 +3,8 @@ import os, json, urllib.request
 
 app = Flask(__name__)
 
-# ===== 首页：直接读文件返回，不依赖 Flask static =====
-HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+# ===== 首页 =====
+HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "index.html")
 
 @app.route("/")
 def index():
@@ -18,7 +18,7 @@ def index():
             status=500, content_type="text/html"
         )
 
-# ===== Gemini 配置 =====
+# ===== 配置 =====
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 PLATFORMS = {
@@ -61,66 +61,81 @@ PLATFORMS = {
     }
 }
 
-TRENDING = {
-    "red": ["2026灵性防护清单", "沉浸式书桌改造", "AI数码好物", "宋韵轻国风", "小米SU7真实体验", "极简咖啡角", "春季穿搭公式", "新能源车露营", "副业自由", "治愈系风景"],
-    "douyin": ["荣耀Magic9", "比亚迪宋Ultra", "AI替代打工人", "春日野餐", "数码开箱", "新能源对比测评", "沉浸式收纳", "国货之光", "职场逆袭", "一人食"],
-    "tiktok": ["permanent jewelry", "AI productivity", "desk setup 2026", "EV road trip", "crystal healing", "minimalist living", "tech unboxing", "side hustle", "aesthetic room", "wellness routine"],
-    "ins": ["chunky gold jewelry", "quiet luxury", "desk aesthetics", "EV lifestyle", "crystal collection", "old money style", "tech minimal", "wellness ritual", "capsule wardrobe", "slow living"]
-}
 
-
-def gemini(prompt, img_b64=None):
+# ===== Gemini 调用（支持 Google Search grounding）=====
+def gemini(prompt, img_b64=None, use_search=False, temperature=0.92):
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    
-    import time
-    import urllib.request
-    
-    # 按优先级尝试不同模型
-    models = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash", 
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
-    ]
-    
-    for model_name in models:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
-            parts = [{"text": prompt}]
-            if img_b64:
-                parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
-            body = json.dumps({
-                "contents": [{"parts": parts}],
-                "generationConfig": {"temperature": 0.92, "maxOutputTokens": 8192, "responseMimeType": "application/json"}
-            }).encode()
-            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-            
-            for attempt in range(3):
-                try:
-                    with urllib.request.urlopen(req, timeout=60) as r:
-                        res = json.loads(r.read().decode())
-                        txt = res["candidates"][0]["content"]["parts"][0]["text"]
-                        return json.loads(txt)
-                except urllib.error.HTTPError as e:
-                    if e.code == 503 and attempt < 2:
-                        time.sleep(2 ** attempt)
-                        continue
-                    raise
-        except Exception as e:
-            continue
-    
-    return {"error": "所有模型均不可用"}
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+    parts = [{"text": prompt}]
+    if img_b64:
+        parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
 
+    payload = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {"temperature": temperature, "maxOutputTokens": 8192}
+    }
+
+    if not use_search:
+        payload["generationConfig"]["responseMimeType"] = "application/json"
+
+    if use_search:
+        payload["tools"] = [{"google_search": {}}]
+
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            res = json.loads(r.read().decode())
+            txt = res["candidates"][0]["content"]["parts"][0]["text"]
+            if use_search:
+                return {"text": txt}
+            return json.loads(txt)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ===== Step 1: 搜索真实爆款案例 =====
+def search_viral_examples(platform_name, user_topic):
+    prompt = f"""请搜索"{platform_name}"平台上最近关于"{user_topic}"主题的爆款内容。
+
+我需要你找到3-5个真实存在的高互动帖子/视频案例，对每个案例提供：
+1. 标题/文案的原文或核心内容
+2. 大致的互动数据（点赞、评论、转发）
+3. 为什么这个内容能火的1-2个关键因素
+
+同时告诉我这个主题在"{platform_name}"上当前的热门标签和流行趋势方向。
+
+请尽可能提供真实、具体的案例，不要编造数据。如果搜索不到精确数据，请说明是估算。"""
+
+    return gemini(prompt, use_search=True, temperature=0.3)
+
+
+# ===== 路由 =====
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "5.0", "html_path": HTML_PATH, "html_exists": os.path.exists(HTML_PATH)})
+    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "6.0"})
 
 
 @app.route("/api/trending")
 def trending():
-    return jsonify({"platforms": {k: {"topics": v} for k, v in TRENDING.items()}})
+    plat = request.args.get("platform", "red")
+    cfg = PLATFORMS.get(plat, PLATFORMS["red"])
+    result = gemini(
+        f"请搜索{cfg['name']}平台上今天最热门的10个内容话题/趋势关键词，只返回JSON数组格式如[\"话题1\",\"话题2\",...]",
+        use_search=True, temperature=0.2
+    )
+    if "text" in result:
+        try:
+            txt = result["text"]
+            start = txt.find("[")
+            end = txt.rfind("]") + 1
+            if start >= 0 and end > start:
+                topics = json.loads(txt[start:end])
+                return jsonify({"platforms": {plat: {"topics": topics}}})
+        except Exception:
+            pass
+    return jsonify({"platforms": {plat: {"topics": ["暂无数据"]}}})
 
 
 @app.route("/api/analyze", methods=["POST", "OPTIONS"])
@@ -134,12 +149,23 @@ def analyze():
     body_text = d.get("body", "")
     img = d.get("image")
     cfg = PLATFORMS.get(plat, PLATFORMS["red"])
-    hot = TRENDING.get(plat, [])
     weights = cfg["weights"]
     weight_str = " / ".join([f"{k}({v}%)" for k, v in weights.items()])
     dims = list(weights.keys())
 
-    prompt = f"""你是一个毒舌但极其专业的{cfg['name']}爆款内容操盘手。用户把草稿交给你，你的任务不是"提建议"，而是直接动手帮他改到能爆的程度。
+    # ===== Step 1: 搜索真实爆款案例 =====
+    topic_keywords = title if title else body_text[:50]
+    search_result = search_viral_examples(cfg["name"], topic_keywords)
+    real_examples = search_result.get("text", "未找到相关案例") if isinstance(search_result, dict) else "搜索失败"
+
+    # ===== Step 2: 基于真实案例做诊断+改写 =====
+    prompt = f"""你是一个毒舌但极其专业的{cfg['name']}爆款内容操盘手。
+
+## 真实爆款参考（来自实时搜索）
+以下是{cfg['name']}上与用户主题相关的真实爆款案例：
+{real_examples}
+
+---
 
 ## 用户原始草稿
 标题：{title}
@@ -150,40 +176,38 @@ def analyze():
 ## 平台规则：
 {cfg['guide']}
 
-## 当前热门话题（你必须从中挑选相关的融入改写）：
-{', '.join(hot)}
-
 ---
 
 ## 你的任务（按顺序执行）：
 
-### 第一步：诊断原稿
-逐句分析原文，找出以下问题：
-- 标题有没有钩子？能不能在信息流里抢到注意力？
-- 正文结构是否符合平台阅读习惯？
-- 有没有故事性/画面感/情绪共鸣？
-- 标签是否精准？有没有蹭到热点？
-- 有没有互动引导？
+### 第一步：对标分析
+将用户草稿与上面的真实爆款案例逐项对比：
+- 标题钩子强度差距
+- 正文结构和叙事方式差距
+- 标签策略差距
+- 互动引导差距
+引用真实案例的具体做法来说明用户草稿哪里不行。
 
 ### 第二步：重写内容
-- 标题：给出4个完全不同策略的改写版本，每个都必须比原标题强10倍
-- 正文：从头到尾重写，不是在原文上加几个emoji就完事。你要：
+参考真实爆款的成功模式，从头重写用户内容：
+- 标题：给出4个不同策略的改写版本
+- 正文：从头到尾重写，融入爆款案例验证过的技巧
   * 重新组织结构和叙事逻辑
   * 加入具体细节、数据、场景描写
   * 制造情绪起伏（先痛点→再方案→再获得感）
-  * 融入至少2个当前热门话题的关键词
   * 长度必须是原文的2倍以上
   * 严格遵循平台排版规则
-- 标签：根据内容重新生成，禁止用万能标签，每个标签必须和内容强相关
+- 标签：参考爆款案例使用的标签策略，生成强相关标签
 
 ### 第三步：评分
-对原稿（不是改后的）按维度打分，要求严格，60分以下的内容就该是60分以下。
+以真实爆款为满分标杆，对原稿按维度打分。有了真实案例做参照，你的评分必须更精准。
 
-## 输出JSON格式（严格遵循，不要输出任何JSON以外的内容）：
+## 输出JSON格式（严格遵循）：
 
 {{
-  "fatal_flaw": "用一句毒舌但准确的话指出原稿最致命的问题",
-  "diagnosis": "用3-5句话逐点分析原稿的具体问题，要引用原文的具体句子来说明为什么不行",
+  "real_benchmarks": "用2-3句话概括搜索到的爆款案例的共同成功模式",
+  "fatal_flaw": "对比爆款案例后，一句话指出原稿最致命的差距",
+  "diagnosis": "用3-5句话对标分析，引用真实案例说明差距",
   "score": 整数0-100,
   "score_breakdown": {{
     "{dims[0]}": 整数0-100,
@@ -196,53 +220,43 @@ def analyze():
     "【利益承诺】用具体获得感改写的标题",
     "【身份共鸣】用'这说的就是我'改写的标题"
   ],
-  "polished_body": "完整重写后的正文。必须是可以直接复制粘贴发布的成品。包含emoji排版、分段、互动引导、热门标签。禁止偷懒只改几个词。",
+  "polished_body": "完整重写后的正文，参考爆款案例的成功模式。可直接复制粘贴发布。包含emoji排版、分段、互动引导、标签。",
   "tags": ["#标签1", "#标签2", "#标签3", "#标签4", "#标签5", "#标签6", "#标签7", "#标签8"],
   "visual_tips": [
     "具体到参数的封面/配图修改指令1",
     "具体到参数的封面/配图修改指令2",
     "具体到参数的封面/配图修改指令3"
   ],
-  "viral_probability": "进入二级流量池的概率估算，如32%",
+  "viral_probability": "基于与爆款案例的差距估算进入流量池的概率",
   "best_post_time": "最佳发布时间段",
-  "competitor_angle": "如何蹭当前热点的具体角度"
+  "competitor_angle": "参考爆款案例的切入角度建议"
 }}
 
 ## 铁律：
-1. polished_body 必须从头重写，禁止只在原文上微调
-2. 如果原文只有一两句话，你必须扩写到至少200字
-3. 标签必须和改写后的内容匹配，禁止用通用标签
-4. score要诚实，烂内容就给低分，不要客气
-5. 所有标题改写必须基于原标题的核心主题，不能跑题"""
+1. polished_body 必须从头重写，参考爆款模式，禁止只微调
+2. 如果原文只有一两句话，必须扩写到至少200字
+3. 标签必须参考爆款案例的标签策略
+4. score 以真实爆款为标杆，诚实打分
+5. 标题改写必须基于原标题核心主题"""
 
     result = gemini(prompt, img)
+
     vision = None
     if img:
-        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估，不要客气。输出JSON:
+        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估。输出JSON:
 {{
   "visual_score": 0-100整数,
-  "composition": "构图分析：主体位置、留白、视觉重心、是否符合平台审美",
-  "color_analysis": "色彩：饱和度、对比度、色调是否适合{cfg['name']}",
-  "text_overlay_suggestion": "在图片哪个位置放文字、用什么颜色什么字号、具体参数",
-  "crop_suggestion": "裁剪比例建议及原因",
-  "improvement_tips": ["具体改进指令1（带参数）", "具体改进指令2（带参数）", "具体改进指令3（带参数）"],
-  "platform_fit": "与{cfg['name']}审美的匹配度分析"
+  "composition": "构图分析",
+  "color_analysis": "色彩分析",
+  "text_overlay_suggestion": "文字叠加建议（具体位置、颜色、字号）",
+  "crop_suggestion": "裁剪比例建议",
+  "improvement_tips": ["改进1", "改进2", "改进3"],
+  "platform_fit": "平台审美匹配度"
 }}""", img)
 
-    return jsonify({"platform_name": cfg["name"], "text_analysis": result, "vision_analysis": vision}), 200, {"Access-Control-Allow-Origin": "*"}
-
-
-@app.route("/api/test-key")
-def test_key():
-    from flask import request as _req
-    k = _req.args.get("key", "")
-    model = _req.args.get("model", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={k}"
-    body = json.dumps({"contents": [{"parts": [{"text": "say hi"}]}]}).encode()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            res = json.loads(r.read().decode())
-            return jsonify({"status": "ok", "model": model, "response": res.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")[:100]})
-    except Exception as e:
-        return jsonify({"status": "error", "model": model, "error": str(e)[:200]})
+    return jsonify({
+        "platform_name": cfg["name"],
+        "text_analysis": result,
+        "vision_analysis": vision,
+        "search_context": real_examples[:500] if isinstance(real_examples, str) else None
+    }), 200, {"Access-Control-Allow-Origin": "*"}
