@@ -1,8 +1,7 @@
-*
-!.gitignore
-!api/**
-!app.py
-!public/**
-!vercel.json
-!requirements.txt
-!pyproject.toml
+___vc/
+_vendor/
+vc__handler__python.py
+__pycache__/
+*.pyc
+.env
+.vercel/
