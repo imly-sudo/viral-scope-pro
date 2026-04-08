@@ -1,22 +1,7 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify
 import os, json, urllib.request
 
 app = Flask(__name__)
-
-# ===== 首页 =====
-HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "index.html")
-
-@app.route("/")
-def index():
-    try:
-        with open(HTML_PATH, "r", encoding="utf-8") as f:
-            return Response(f.read(), status=200, content_type="text/html; charset=utf-8")
-    except FileNotFoundError:
-        return Response(
-            f"<h1>index.html not found</h1><p>Looking at: {HTML_PATH}</p>"
-            f"<p>Files in project root: {os.listdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))}</p>",
-            status=500, content_type="text/html"
-        )
 
 # ===== 配置 =====
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
