@@ -66,7 +66,7 @@ def gemini(prompt, img_b64=None, temperature=0.92):
     """标准 Gemini 调用，要求返回 JSON，解析后返回 dict"""
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
     parts = [{"text": prompt}]
     if img_b64:
         parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
@@ -94,7 +94,7 @@ def gemini_search(prompt):
     """尝试用 Google Search grounding 搜索，失败则降级为普通调用"""
     if not GEMINI_KEY:
         return "API Key未配置"
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
 
     # 第一次尝试：带 Google Search
     try:
