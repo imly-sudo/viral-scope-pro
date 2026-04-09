@@ -61,83 +61,75 @@ FALLBACK_TRENDING = {
 }
 
 
-# ===== Gemini 调用 =====
-def gemini(prompt, img_b64=None, use_search=False, temperature=0.92):
+# ===== Gemini 基础调用（返回 parsed JSON）=====
+def gemini(prompt, img_b64=None, temperature=0.92):
+    """标准 Gemini 调用，要求返回 JSON，解析后返回 dict"""
     if not GEMINI_KEY:
         return {"error": "API Key未配置"}
-
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
     parts = [{"text": prompt}]
     if img_b64:
         parts.insert(0, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}})
-
     payload = {
         "contents": [{"parts": parts}],
-        "generationConfig": {"temperature": temperature, "maxOutputTokens": 8192}
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": 8192,
+            "responseMimeType": "application/json"
+        }
     }
-
-    if not use_search:
-        payload["generationConfig"]["responseMimeType"] = "application/json"
-
-    if use_search:
-        payload["tools"] = [{"google_search": {}}]
-
     body = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             res = json.loads(r.read().decode())
             txt = res["candidates"][0]["content"]["parts"][0]["text"]
-            if use_search:
-                return {"text": txt}
             return json.loads(txt)
     except Exception as e:
         return {"error": str(e)}
 
 
-def gemini_with_search_fallback(prompt, temperature=0.3):
-    """先尝试带搜索调用，失败则降级为普通调用"""
-    result = gemini(prompt, use_search=True, temperature=temperature)
-    if isinstance(result, dict) and "error" in result:
-        # 搜索失败，降级为普通调用（不要求JSON输出）
-        fallback_result = gemini(prompt + "\n\n请基于你的训练知识回答，不需要搜索。", use_search=False, temperature=temperature)
-        if isinstance(fallback_result, dict) and "error" not in fallback_result:
-            return {"text": json.dumps(fallback_result, ensure_ascii=False)}
-        # 再次降级：不要求JSON
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt + "\n\n请基于你的训练知识回答。"}]}],
-                "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096}
-            }
-            body = json.dumps(payload).encode()
-            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=60) as r:
-                res = json.loads(r.read().decode())
-                txt = res["candidates"][0]["content"]["parts"][0]["text"]
-                return {"text": txt}
-        except Exception as e2:
-            return {"text": f"搜索和降级调用均失败: {str(e2)}"}
-    return result
+# ===== Gemini 搜索调用（带 fallback，返回纯文本）=====
+def gemini_search(prompt):
+    """尝试用 Google Search grounding 搜索，失败则降级为普通调用"""
+    if not GEMINI_KEY:
+        return "API Key未配置"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
 
+    # 第一次尝试：带 Google Search
+    try:
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096},
+            "tools": [{"google_search": {}}]
+        }
+        body = json.dumps(payload).encode()
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            res = json.loads(r.read().decode())
+            return res["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception:
+        pass
 
-def search_viral_examples(platform_name, user_topic):
-    prompt = f"""请搜索"{platform_name}"平台上最近关于"{user_topic}"主题的爆款内容。
-
-找到3-5个真实的高互动帖子/视频案例，对每个提供：
-1. 标题/文案核心内容
-2. 大致互动数据（点赞、评论、转发）
-3. 为什么能火的1-2个关键因素
-
-同时列出这个主题当前的热门标签和趋势方向。如果搜索不到精确数据，请基于你对该平台的了解给出专业分析。"""
-
-    return gemini_with_search_fallback(prompt, temperature=0.3)
+    # 降级：不带搜索，让 Gemini 基于训练知识回答
+    try:
+        payload = {
+            "contents": [{"parts": [{"text": prompt + "\n\n请基于你的专业知识回答，给出具体的案例分析。"}]}],
+            "generationConfig": {"temperature": 0.5, "maxOutputTokens": 4096}
+        }
+        body = json.dumps(payload).encode()
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            res = json.loads(r.read().decode())
+            return res["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"搜索失败: {str(e)}"
 
 
 # ===== 路由 =====
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "6.1"})
+    return jsonify({"status": "ok", "gemini": bool(GEMINI_KEY), "v": "6.2"})
 
 
 @app.route("/api/trending")
@@ -160,16 +152,18 @@ def analyze():
     weight_str = " / ".join([f"{k}({v}%)" for k, v in weights.items()])
     dims = list(weights.keys())
 
-    # ===== Step 1: 搜索真实爆款案例（带 fallback）=====
+    # ===== Step 1: 搜索爆款案例（用 gemini_search，带 fallback）=====
     topic_keywords = title if title else body_text[:50]
-    search_result = search_viral_examples(cfg["name"], topic_keywords)
-    real_examples = search_result.get("text", "未找到相关案例") if isinstance(search_result, dict) else "搜索失败"
+    real_examples = gemini_search(
+        f'请搜索"{cfg["name"]}"平台上最近关于"{topic_keywords}"主题的爆款内容。'
+        f'找到3-5个高互动案例，每个提供：标题、互动数据、为什么能火。'
+        f'同时列出当前热门标签和趋势方向。'
+    )
 
-    # ===== Step 2: 基于案例做诊断+改写 =====
+    # ===== Step 2: 基于案例做诊断+改写（用 gemini，返回 JSON）=====
     prompt = f"""你是一个毒舌但极其专业的{cfg['name']}爆款内容操盘手。
 
 ## 爆款参考案例
-以下是{cfg['name']}上与用户主题相关的爆款案例分析：
 {real_examples}
 
 ---
@@ -185,28 +179,18 @@ def analyze():
 
 ---
 
-## 任务（按顺序执行）：
+## 任务：
 
 ### 第一步：对标分析
-将用户草稿与爆款案例逐项对比：
-- 标题钩子强度差距
-- 正文结构和叙事方式差距
-- 标签策略差距
-- 互动引导差距
+将用户草稿与爆款案例逐项对比，找出标题、正文、标签、互动引导的差距。
 
 ### 第二步：重写内容
-参考爆款的成功模式，从头重写：
 - 标题：4个不同策略的改写版本
-- 正文：从头到尾重写，融入爆款验证过的技巧
-  * 重新组织结构和叙事逻辑
-  * 加入具体细节、数据、场景描写
-  * 制造情绪起伏（先痛点→再方案→再获得感）
-  * 长度必须是原文的2倍以上
-  * 严格遵循平台排版规则
-- 标签：参考爆款标签策略，生成强相关标签
+- 正文：从头到尾重写，融入爆款技巧，长度是原文2倍以上，严格遵循平台排版规则
+- 标签：参考爆款标签策略生成
 
 ### 第三步：评分
-以爆款为满分标杆，对原稿按维度打分，严格。
+以爆款为满分标杆，对原稿按维度严格打分。
 
 ## 输出JSON（严格遵循）：
 
@@ -245,18 +229,11 @@ def analyze():
 4. score 诚实打分
 5. 标题改写基于原标题核心主题"""
 
-    # 使用 fallback 版本，确保即使 API 失败也能返回结果
-    result = gemini_with_search_fallback(prompt, temperature=0.92)
-    # 如果返回的是 text 包装，解包
-    if isinstance(result, dict) and "text" in result and "error" not in result:
-        try:
-            result = json.loads(result["text"])
-        except:
-            pass
+    result = gemini(prompt, img)
 
     vision = None
     if img:
-        vision = gemini_with_search_fallback(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估。输出JSON:
+        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估。输出JSON:
 {{
   "visual_score": 0-100整数,
   "composition": "构图分析",
