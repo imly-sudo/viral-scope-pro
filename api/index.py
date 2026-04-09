@@ -1,7 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import os, json, urllib.request
 
 app = Flask(__name__)
+
+# === 根路径：返回 HTML ===
+@app.route("/")
+def index():
+    return send_file(os.path.join(os.path.dirname(__file__), "page.html"))
 
 # ===== 配置 =====
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
