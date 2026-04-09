@@ -245,11 +245,18 @@ def analyze():
 4. score 诚实打分
 5. 标题改写基于原标题核心主题"""
 
-    result = gemini(prompt, img)
+    # 使用 fallback 版本，确保即使 API 失败也能返回结果
+    result = gemini_with_search_fallback(prompt, temperature=0.92)
+    # 如果返回的是 text 包装，解包
+    if isinstance(result, dict) and "text" in result and "error" not in result:
+        try:
+            result = json.loads(result["text"])
+        except:
+            pass
 
     vision = None
     if img:
-        vision = gemini(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估。输出JSON:
+        vision = gemini_with_search_fallback(f"""分析这张图片作为{cfg['name']}封面图的表现力。严格评估。输出JSON:
 {{
   "visual_score": 0-100整数,
   "composition": "构图分析",
